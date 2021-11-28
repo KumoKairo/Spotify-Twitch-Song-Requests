@@ -1,5 +1,4 @@
 const express = require('express');
-const expressPort = 8888;
 
 const fs = require('fs');
 const YAML = require('yaml');
@@ -9,14 +8,15 @@ const axios = require('axios').default;
 
 const open = require('open');
 
+const chatbotConfig = setupYamlConfigs();
+const expressPort = chatbotConfig.express_port;
+
 let spotifyRefreshToken = "";
 let spotifyAccessToken = "";
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 const redirectUri = `http://localhost:${expressPort}/callback`;
-
-const chatbotConfig = setupYamlConfigs();
 
 const client = new tmi.Client({
     connection: {
@@ -216,7 +216,7 @@ app.get('/callback', async (req, res) => {
 
 app.listen(expressPort);
 
-console.log(`App is running. Visit http://localhost:${expressPort}/login to refresh the tokens`);
+console.log(`App is running. Visit http://localhost:${expressPort}/login to refresh the tokens if the page didn't open automatically`);
 open(`http://localhost:${expressPort}/login`);
 
 function setupYamlConfigs () {
