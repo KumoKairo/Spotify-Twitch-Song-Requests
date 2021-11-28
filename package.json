@@ -1,0 +1,18 @@
+{
+  "name": "spoti-pack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.24.0",
+    "express": "^4.17.1",
+    "tmi.js": "^1.8.5",
+    "yaml": "^1.10.2"
+  }
+}
