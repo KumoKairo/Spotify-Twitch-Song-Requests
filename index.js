@@ -1,14 +1,22 @@
 const express = require('express');
 const expressPort = 8888;
 
-const tmi = require("tmi.js");
+const fs = require('fs');
+const YAML = require('yaml');
+
+const tmi = require('tmi.js');
 const axios = require('axios').default;
-let spotifyRefreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
+
+const open = require('open');
+
+let spotifyRefreshToken = "";
 let spotifyAccessToken = "";
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 const redirectUri = `http://localhost:${expressPort}/callback`;
+
+const chatbotConfig = setupYamlConfigs();
 
 const client = new tmi.Client({
     connection: {
@@ -16,13 +24,15 @@ const client = new tmi.Client({
         reconnect: true
     },
     identity: {
-        username: "KumoKairo",
+        username: chatbotConfig.user_name,
         password: process.env.TWITCH_OAUTH_TOKEN
     },
-    channels: [ "KumoKairo" ]
+    channels: [ chatbotConfig.channel_name ]
 });
 
 client.connect();
+
+console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel "${chatbotConfig.channel_name}"`);
 
 client.on("message", async (channel, tags, message, self) => {
     if(self) return;
@@ -83,14 +93,18 @@ let handleSongRequest = async (channel, tags, message) => {
 let validateSongRequest = (message, channel, tags) => {
     let splitMessage = message.split(" ");
 
+    let usernameParams = {
+        username: tags.username
+    };
+
     if (splitMessage.length < 2) {
-        client.say(channel, `@${tags.username}, usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)`);
+        client.say(channel, handleMessageQueries(chatbotConfig.usage_message, usernameParams));
         return false;
     }
 
     let url = splitMessage[1];
     if(!url.includes("https://open.spotify.com/track/")) {
-        client.say(channel, `@${tags.username}, sorry, but only Spotify songs are supported`);
+        client.say(channel, handleMessageQueries(chatbotConfig.wrong_format_message, usernameParams));
         return false;
     }
 
@@ -114,14 +128,19 @@ let addSongToQueue = async (songId, channel) => {
 
     let trackInfo = await getTrackInfo(songId);
 
-    let songName = trackInfo.name;
+    let trackName = trackInfo.name;
     let artists = trackInfo.artists.map(artist => artist.name).join(", ");
 
     let uri = trackInfo.uri;
 
     res = await axios.post(`https://api.spotify.com/v1/me/player/queue?uri=${uri}`, {}, { headers: spotifyHeaders });
 
-    client.say(channel, `"${artists} - ${songName}" is added to the queue catJAM`);
+    let trackParams = {
+        artists: artists,
+        trackName: trackName
+    }
+
+    client.say(channel, handleMessageQueries(chatbotConfig.added_to_queue_message, trackParams));
 }
 
 let refreshAccessToken = async () => {
@@ -142,8 +161,6 @@ let refreshAccessToken = async () => {
         console.log(`Error refreshing token: ${error.message}`);
     }
 }
-
-refreshAccessToken();
 
 function getSpotifyHeaders() {
     return {
@@ -200,3 +217,26 @@ app.get('/callback', async (req, res) => {
 app.listen(expressPort);
 
 console.log(`App is running. Visit http://localhost:${expressPort}/login to refresh the tokens`);
+open(`http://localhost:${expressPort}/login`);
+
+function setupYamlConfigs () {
+    const configFile = fs.readFileSync('spotipack_config.yaml', 'utf8');
+    let fileConfig = YAML.parse(configFile);
+    return fileConfig;
+};
+
+function handleMessageQueries (message, params) {
+    let newMessage = message;
+
+    if (params.username) {
+        newMessage = newMessage.replace('$(username)', params.username);
+    }
+    if (params.trackName) {
+        newMessage = newMessage.replace('$(trackName)', params.trackName);
+    }
+    if (params.artists) {
+        newMessage = newMessage.replace('$(artists)', params.artists);
+    }
+
+    return newMessage;
+}
