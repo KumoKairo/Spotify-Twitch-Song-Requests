@@ -118,3 +118,6 @@ dist
 .pnp.*
 
 .DS_Store
+dist
+bins
+*.zip

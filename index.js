@@ -16,6 +16,8 @@ let spotifyAccessToken = "";
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
+const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
+
 const redirectUri = `http://localhost:${expressPort}/callback`;
 
 const client = new tmi.Client({
@@ -25,7 +27,7 @@ const client = new tmi.Client({
     },
     identity: {
         username: chatbotConfig.user_name,
-        password: process.env.TWITCH_OAUTH_TOKEN
+        password: twitchOauthToken
     },
     channels: [ chatbotConfig.channel_name ]
 });

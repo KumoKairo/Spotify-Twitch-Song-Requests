@@ -1,0 +1,1 @@
+start "" node\node.exe index.js
