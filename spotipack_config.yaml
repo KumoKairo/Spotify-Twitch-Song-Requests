@@ -3,7 +3,10 @@ channel_name: "REPLACE THIS"             # Name of the channel this bot is worki
 usage_message: "$(username), usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)"  # Command is called without any arguments
 wrong_format_message: "$(username), sorry, but only Spotify Share URLs are supported"             # Command arguments are not recognized as a Spotify share link URL
 added_to_queue_message: "\"$(artists) - $(trackName)\" is added to the queue catJAM"                  # Successfully added the song to the queue
+custom_reward_id: "xxx123-xxx-xxx-xxx"
 express_port: 8888
+logs: FALSE
+usage_type: "channel_points" # can be either "channel_points" or "command"
 
 # List of ENV variables required at the start:
 # SPOTIFY_CLIENT_ID

@@ -9,6 +9,7 @@ const axios = require('axios').default;
 const open = require('open');
 
 const chatbotConfig = setupYamlConfigs();
+
 const expressPort = chatbotConfig.express_port;
 
 let spotifyRefreshToken = "";
@@ -17,6 +18,14 @@ let spotifyAccessToken = "";
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
+
+const channelPointsUsageType = "channel_points";
+const commandUsageType = "command";
+
+if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
+    console.log(`Usage type is neither "${channelPointsUsageType}" nor "${commandUsageType}", app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
+}
+
 
 const redirectUri = `http://localhost:${expressPort}/callback`;
 
@@ -32,7 +41,7 @@ const client = new tmi.Client({
     channels: [ chatbotConfig.channel_name ]
 });
 
-client.connect();
+client.connect().catch(console.error);
 
 console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel "${chatbotConfig.channel_name}"`);
 
@@ -41,10 +50,21 @@ client.on("message", async (channel, tags, message, self) => {
 
     let messageToLower = message.toLowerCase();
 
-    if(messageToLower.startsWith("!songrequest")) {
-        await handleSongRequest(channel, tags, message);
+    if(chatbotConfig.usage_type === commandUsageType && messageToLower.startsWith("!songrequest")) {
+        await handleSongRequest(channel, tags, message, true);
     } else if (messageToLower === "!song") {
         await handleTrackName(channel);
+    }
+});
+
+client.on('redeem', async (channel, username, rewardType, tags, message) => {
+    log(`Reward ID: ${rewardType}`);
+
+    if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
+        let result = await handleSongRequest(channel, tags, message, false);
+        if(!result) {
+            console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
+        }
     }
 });
 
@@ -52,11 +72,12 @@ let handleTrackName = async (channel) => {
     try {
         await printTrackName(channel);
     } catch (error) {
-        console.log(error);
         // Token expired
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
             await printTrackName(channel);
+        } else {
+            client.say(chatbotConfig.channel_name, `Seems like no music is playing right now`);
         }
     }
 }
@@ -75,36 +96,46 @@ let printTrackName = async (channel) => {
     client.say(channel, `${artists} - ${trackName}`);
 }
 
-let handleSongRequest = async (channel, tags, message) => {
-    let validatedSongId = validateSongRequest(message, channel, tags);
+let handleSongRequest = async (channel, tags, message, runAsCommand) => {
+    let validatedSongId = validateSongRequest(message, channel, tags, runAsCommand);
         if(!validatedSongId) {
-            return;
+            return false;
         }
         try {
             await addSongToQueue(validatedSongId, channel);
         } catch (error) {
             // Token expired
-            console.log(error);
             if(error?.response?.data?.error?.status === 401) {
                 await refreshAccessToken();
                 await addSongToQueue(validatedSongId, channel);
+            } else {
+                return false;
             }
         }
+
+        return true;
 }
 
-let validateSongRequest = (message, channel, tags) => {
-    let splitMessage = message.split(" ");
-
+let validateSongRequest = (message, channel, tags, runAsCommand) => {
+    let url = "";
     let usernameParams = {
         username: tags.username
     };
 
-    if (splitMessage.length < 2) {
-        client.say(channel, handleMessageQueries(chatbotConfig.usage_message, usernameParams));
-        return false;
+    if(runAsCommand) {
+        let splitMessage = message.split(" ");
+
+
+        if (splitMessage.length < 2) {
+            client.say(channel, handleMessageQueries(chatbotConfig.usage_message, usernameParams));
+            return false;
+        }
+
+        url = splitMessage[1];
+    } else {
+        url = message;
     }
 
-    let url = splitMessage[1];
     if(!url.includes("https://open.spotify.com/track/")) {
         client.say(channel, handleMessageQueries(chatbotConfig.wrong_format_message, usernameParams));
         return false;
@@ -241,4 +272,10 @@ function handleMessageQueries (message, params) {
     }
 
     return newMessage;
+}
+
+function log(message) {
+    if(chatbotConfig.logs) {
+        console.log(message);
+    }    
 }
