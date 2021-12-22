@@ -7,5 +7,6 @@ Standalone app that connects to Twitch and Spotify, reads chat for !songrequest 
 
 --------
 [Setup docs & Wiki](https://github.com/KumoKairo/Spotify-Twitch-Song-Requests/wiki)
+
 --------
 Discord link for questions / suggestions: https://discord.gg/bushYbHQ2r
