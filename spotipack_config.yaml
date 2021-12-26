@@ -7,6 +7,7 @@ custom_reward_id: "xxx123-xxx-xxx-xxx"
 express_port: 8888
 logs: FALSE
 usage_type: "channel_points" # can be either "channel_points" or "command"
+use_song_command: TRUE # add !song command that displays currently playing song. FALSE if you don't want it
 
 # List of ENV variables required at the start:
 # SPOTIFY_CLIENT_ID
