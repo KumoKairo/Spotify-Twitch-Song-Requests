@@ -52,7 +52,7 @@ client.on("message", async (channel, tags, message, self) => {
 
     if(chatbotConfig.usage_type === commandUsageType && messageToLower.startsWith("!songrequest")) {
         await handleSongRequest(channel, tags, message, true);
-    } else if (messageToLower === "!song") {
+    } else if (chatbotConfig.use_song_command && messageToLower === "!song") {
         await handleTrackName(channel);
     }
 });
