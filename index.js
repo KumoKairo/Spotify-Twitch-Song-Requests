@@ -51,7 +51,10 @@ client.on("message", async (channel, tags, message, self) => {
     let messageToLower = message.toLowerCase();
 
     if(chatbotConfig.usage_type === commandUsageType && messageToLower.startsWith("!songrequest")) {
-        await handleSongRequest(channel, tags, message, true);
+        let result = await handleSongRequest(channel, tags, message, true);
+        if(!result) {
+            client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
+        }
     } else if (chatbotConfig.use_song_command && messageToLower === "!song") {
         await handleTrackName(channel);
     }
@@ -63,6 +66,7 @@ client.on('redeem', async (channel, username, rewardType, tags, message) => {
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags, message, false);
         if(!result) {
+            client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
         }
     }
@@ -97,27 +101,36 @@ let printTrackName = async (channel) => {
 }
 
 let handleSongRequest = async (channel, tags, message, runAsCommand) => {
-    let validatedSongId = validateSongRequest(message, channel, tags, runAsCommand);
-        if(!validatedSongId) {
+    let validatedSongId = await validateSongRequest(message, channel, tags, runAsCommand);
+    if(!validatedSongId) {
+        return false;
+    }
+    try {
+        await addSongToQueue(validatedSongId, channel);
+    } catch (error) {
+        // Token expired
+        if(error?.response?.data?.error?.status === 401) {
+            await refreshAccessToken();
+            await addSongToQueue(validatedSongId, channel);
+        } else {
             return false;
         }
-        try {
-            await addSongToQueue(validatedSongId, channel);
-        } catch (error) {
-            // Token expired
-            if(error?.response?.data?.error?.status === 401) {
-                await refreshAccessToken();
-                await addSongToQueue(validatedSongId, channel);
-            } else {
-                return false;
-            }
-        }
+    }
 
-        return true;
+    return true;
 }
 
-let validateSongRequest = (message, channel, tags, runAsCommand) => {
-    let url = "";
+let searchTrackID = async (searchString) => {
+    let spotifyHeaders = getSpotifyHeaders();
+    searchString = encodeURIComponent(searchString);
+    const searchResponse = await axios.get(`https://api.spotify.com/v1/search?q=${searchString}&type=track`, {
+        headers: spotifyHeaders
+    });
+    return searchResponse.data.tracks.items[0]?.id;
+}
+
+let validateSongRequest = async (message, channel, tags, runAsCommand) => {
+    let url = "", searchString = "";
     let usernameParams = {
         username: tags.username
     };
@@ -125,23 +138,24 @@ let validateSongRequest = (message, channel, tags, runAsCommand) => {
     if(runAsCommand) {
         let splitMessage = message.split(" ");
 
-
         if (splitMessage.length < 2) {
             client.say(channel, handleMessageQueries(chatbotConfig.usage_message, usernameParams));
             return false;
         }
 
         url = splitMessage[1];
+        splitMessage.shift();
+        searchString = splitMessage.join(" ");
     } else {
         url = message;
+        searchString = message;
     }
 
     if(!url.includes("https://open.spotify.com/track/")) {
-        client.say(channel, handleMessageQueries(chatbotConfig.wrong_format_message, usernameParams));
-        return false;
+        return searchTrackID(searchString);
+    } else {
+        return getTrackId(url);
     }
-
-    return getTrackId(url);
 }
 
 let getTrackId = (url) => {
@@ -216,7 +230,7 @@ app.get('/login', (req, res) => {
 
 app.get('/callback', async (req, res) => {
     let code = req.query.code || null;
-    
+
     if (!code) {
         // Print error
         return;
@@ -277,5 +291,5 @@ function handleMessageQueries (message, params) {
 function log(message) {
     if(chatbotConfig.logs) {
         console.log(message);
-    }    
+    }
 }
