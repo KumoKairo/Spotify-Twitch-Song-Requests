@@ -12,18 +12,18 @@ const chatbotConfig = setupYamlConfigs();
 
 const expressPort = chatbotConfig.express_port;
 
-let spotifyRefreshToken = "";
-let spotifyAccessToken = "";
+let spotifyRefreshToken = '';
+let spotifyAccessToken = '';
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
 
-const channelPointsUsageType = "channel_points";
-const commandUsageType = "command";
+const channelPointsUsageType = 'channel_points';
+const commandUsageType = 'command';
 
 if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
-    console.log(`Usage type is neither "${channelPointsUsageType}" nor "${commandUsageType}", app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
+    console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
 }
 
 
@@ -43,16 +43,16 @@ const client = new tmi.Client({
 
 client.connect().catch(console.error);
 
-console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel "${chatbotConfig.channel_name}"`);
+console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel '${chatbotConfig.channel_name}'`);
 
-client.on("message", async (channel, tags, message, self) => {
+client.on('message', async (channel, tags, message, self) => {
     if(self) return;
 
     let messageToLower = message.toLowerCase();
 
-    if(chatbotConfig.usage_type === commandUsageType && messageToLower.startsWith("!songrequest")) {
+    if(chatbotConfig.usage_type === commandUsageType && messageToLower.startsWith('!songrequest')) {
         await handleSongRequest(channel, tags, message, true);
-    } else if (chatbotConfig.use_song_command && messageToLower === "!song") {
+    } else if (chatbotConfig.use_song_command && messageToLower === '!song') {
         await handleTrackName(channel);
     }
 });
@@ -92,7 +92,7 @@ let printTrackName = async (channel) => {
     let trackId = res.data.item.id;
     let trackInfo = await getTrackInfo(trackId);
     let trackName = trackInfo.name;
-    let artists = trackInfo.artists.map(artist => artist.name).join(", ");
+    let artists = trackInfo.artists.map(artist => artist.name).join(', ');
     client.say(channel, `${artists} - ${trackName}`);
 }
 
@@ -117,13 +117,13 @@ let handleSongRequest = async (channel, tags, message, runAsCommand) => {
 }
 
 let validateSongRequest = (message, channel, tags, runAsCommand) => {
-    let url = "";
+    let url = '';
     let usernameParams = {
         username: tags.username
     };
 
     if(runAsCommand) {
-        let splitMessage = message.split(" ");
+        let splitMessage = message.split(' ');
 
 
         if (splitMessage.length < 2) {
@@ -136,7 +136,7 @@ let validateSongRequest = (message, channel, tags, runAsCommand) => {
         url = message;
     }
 
-    if(!url.includes("https://open.spotify.com/track/")) {
+    if(!url.includes('https://open.spotify.com/track/')) {
         client.say(channel, handleMessageQueries(chatbotConfig.wrong_format_message, usernameParams));
         return false;
     }
@@ -162,7 +162,7 @@ let addSongToQueue = async (songId, channel) => {
     let trackInfo = await getTrackInfo(songId);
 
     let trackName = trackInfo.name;
-    let artists = trackInfo.artists.map(artist => artist.name).join(", ");
+    let artists = trackInfo.artists.map(artist => artist.name).join(', ');
 
     let uri = trackInfo.uri;
 
@@ -179,7 +179,7 @@ let addSongToQueue = async (songId, channel) => {
 let refreshAccessToken = async () => {
     const params = new URLSearchParams();
     params.append('refresh_token', spotifyRefreshToken);
-    params.append('grant_type', "refresh_token");
+    params.append('grant_type', 'refresh_token');
     params.append('redirect_uri', `http://localhost:${expressPort}/callback`);
 
     try {
@@ -244,7 +244,7 @@ app.get('/callback', async (req, res) => {
     spotifyAccessToken = tokenResponse.data.access_token;
     spotifyRefreshToken = tokenResponse.data.refresh_token;
 
-    res.send("Tokens refreshed successfully. You can close this tab");
+    res.send('Tokens refreshed successfully. You can close this tab');
 });
 
 app.listen(expressPort);
