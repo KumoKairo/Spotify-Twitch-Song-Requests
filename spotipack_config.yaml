@@ -6,8 +6,12 @@ added_to_queue_message: "\"$(artists) - $(trackName)\" is added to the queue cat
 custom_reward_id: "xxx123-xxx-xxx-xxx"
 express_port: 8888
 logs: FALSE
-usage_type: "channel_points" # can be either "channel_points" or "command"
+usage_type: "channel_points" # can be either "channel_points", "command" or "bits"
+command_alias: "!songrequest" # can be switched to something custom like "!sr" for brevity
 use_song_command: TRUE # add !song command that displays currently playing song. FALSE if you don't want it
+# OPTIONAL STUFF
+minimum_bits_amount: 10 # works if usage mode is set to "bits"
+# --------------
 
 # List of ENV variables required at the start:
 # SPOTIFY_CLIENT_ID
