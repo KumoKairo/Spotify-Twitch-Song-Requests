@@ -10,7 +10,7 @@ usage_type: "channel_points" # can be either "channel_points", "command" or "bit
 command_alias: "!songrequest" # can be switched to something custom like "!sr" for brevity
 use_song_command: TRUE # add !song command that displays currently playing song. FALSE if you don't want it
 # OPTIONAL STUFF
-minimum_bits_amount: 10 # works if usage mode is set to "bits"
+minimum_bits_amount: 1 # works if usage mode is set to "bits"
 # --------------
 
 # List of ENV variables required at the start:
