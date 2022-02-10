@@ -22,6 +22,7 @@ const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
 const channelPointsUsageType = 'channel_points';
 const commandUsageType = 'command';
 const bitsUsageType = 'bits';
+const defaultRewardId = 'xxx-xxx-xxx-xxx';
 
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
@@ -290,8 +291,17 @@ open(`http://localhost:${expressPort}/login`);
 function setupYamlConfigs () {
     const configFile = fs.readFileSync('spotipack_config.yaml', 'utf8');
     let fileConfig = YAML.parse(configFile);
+
+    checkIfSetupIsCorrect(configFile);
+
     return fileConfig;
 };
+
+function checkIfSetupIsCorrect(configFile) {
+    if (configFile.usage_type === channelPointsUsageType && configFile.custom_reward_id === defaultRewardId) {
+        console.log(`You have set 'usage_type' to 'channel_points', but didn't provide a custom Reward ID. Refer to the manual to get the Reward ID value, or change the usage type`);
+    }
+}
 
 function handleMessageQueries (message, params) {
     let newMessage = message;
