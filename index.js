@@ -145,6 +145,11 @@ let addValidatedSongToQueue = async (songId, channel) => {
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
             await addSongToQueue(songId, channel);
+        }
+        // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
+        if(error?.response?.data?.error?.status === 404) {
+            client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
+            return false;
         } else {
             return false;
         }
