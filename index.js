@@ -8,10 +8,6 @@ const axios = require('axios').default;
 
 const open = require('open');
 
-const chatbotConfig = setupYamlConfigs();
-
-const expressPort = chatbotConfig.express_port;
-
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 
@@ -22,8 +18,12 @@ const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
 const channelPointsUsageType = 'channel_points';
 const commandUsageType = 'command';
 const bitsUsageType = 'bits';
+const defaultRewardId = 'xxx-xxx-xxx-xxx';
 
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
+
+const chatbotConfig = setupYamlConfigs();
+const expressPort = chatbotConfig.express_port;
 
 if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
     console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
@@ -144,6 +144,11 @@ let addValidatedSongToQueue = async (songId, channel) => {
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
             await addSongToQueue(songId, channel);
+        }
+        // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
+        if(error?.response?.data?.error?.status === 404) {
+            client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
+            return false;
         } else {
             return false;
         }
@@ -290,8 +295,17 @@ open(`http://localhost:${expressPort}/login`);
 function setupYamlConfigs () {
     const configFile = fs.readFileSync('spotipack_config.yaml', 'utf8');
     let fileConfig = YAML.parse(configFile);
+
+    checkIfSetupIsCorrect(fileConfig);
+
     return fileConfig;
 };
+
+function checkIfSetupIsCorrect(fileConfig) {
+    if (fileConfig.usage_type === channelPointsUsageType && fileConfig.custom_reward_id === defaultRewardId) {
+        console.log(`!ERROR!: You have set 'usage_type' to 'channel_points', but didn't provide a custom Reward ID. Refer to the manual to get the Reward ID value, or change the usage type`);
+    }
+}
 
 function handleMessageQueries (message, params) {
     let newMessage = message;
