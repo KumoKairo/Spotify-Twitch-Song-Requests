@@ -128,8 +128,9 @@ let printTrackName = async (channel) => {
 }
 
 let handleSongRequest = async (channel, username, message, runAsCommand) => {
-    let validatedSongId = validateSongRequest(message, channel, username, runAsCommand);
+    let validatedSongId = await validateSongRequest(message, channel, username, runAsCommand);
     if(!validatedSongId) {
+        client.say(channel, `Either the URL is incorrect, or I couldn't find the song on Spotify`);
         return false;
     }
 
@@ -165,7 +166,17 @@ let addValidatedSongToQueue = async (songId, channel) => {
     return true;
 }
 
-let validateSongRequest = (message, channel, username, runAsCommand) => {
+// Thanks AdamMcD94
+let searchTrackID = async (searchString) => {
+    let spotifyHeaders = getSpotifyHeaders();
+    searchString = encodeURIComponent(searchString);
+    const searchResponse = await axios.get(`https://api.spotify.com/v1/search?q=${searchString}&type=track`, {
+        headers: spotifyHeaders
+    });
+    return searchResponse.data.tracks.items[0]?.id;
+}
+
+let validateSongRequest = async (message, channel, username, runAsCommand) => {
     let url = '';
     let usernameParams = {
         username: username
@@ -185,8 +196,7 @@ let validateSongRequest = (message, channel, username, runAsCommand) => {
     }
 
     if(!url.includes(spotifyShareUrlMaker)) {
-        client.say(channel, handleMessageQueries(chatbotConfig.wrong_format_message, usernameParams));
-        return false;
+        return searchTrackID(message);
     }
 
     return getTrackId(url);
