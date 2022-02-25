@@ -90,7 +90,7 @@ client.on('cheer', async (channel, state, message) => {
 });
 
 let parseActualSongUrlFromBigMessage = (message) => {
-    const regex = new RegExp('https://open.spotify.com/track/[^\\s]+');
+    const regex = new RegExp(`${spotifyShareUrlMaker}[^\\s]+`);
     let match = message.match(regex);
     if (match !== null) {
         return match[0];
@@ -184,7 +184,7 @@ let validateSongRequest = (message, channel, username, runAsCommand) => {
         url = message;
     }
 
-    if(!url.includes('https://open.spotify.com/track/')) {
+    if(!url.includes(spotifyShareUrlMaker)) {
         client.say(channel, handleMessageQueries(chatbotConfig.wrong_format_message, usernameParams));
         return false;
     }
