@@ -149,7 +149,15 @@ let addValidatedSongToQueue = async (songId, channel) => {
         if(error?.response?.data?.error?.status === 404) {
             client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
             return false;
-        } else {
+        } 
+        if(error?.response?.status === 403) {
+            client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium OSFrog`);
+            return false;
+        }
+        else {
+            console.log('ERROR WHILE REACHING SPOTIFY');
+            console.log(error?.response?.data);
+            console.log(error?.response?.status);
             return false;
         }
     }
