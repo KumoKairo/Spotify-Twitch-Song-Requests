@@ -122,6 +122,8 @@ let handleSongRequest = async (channel, tags, message, runAsCommand) => {
 
 let searchTrackID = async (searchString) => {
     let spotifyHeaders = getSpotifyHeaders();
+    searchString = searchString.replace(/-/, ' ');
+    searchString = searchString.replace(/ by /, ' ');
     searchString = encodeURIComponent(searchString);
     const searchResponse = await axios.get(`https://api.spotify.com/v1/search?q=${searchString}&type=track`, {
         headers: spotifyHeaders
