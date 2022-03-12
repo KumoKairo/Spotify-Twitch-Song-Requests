@@ -8,10 +8,6 @@ const axios = require('axios').default;
 
 const open = require('open');
 
-const chatbotConfig = setupYamlConfigs();
-
-const expressPort = chatbotConfig.express_port;
-
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 
@@ -21,11 +17,17 @@ const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
 
 const channelPointsUsageType = 'channel_points';
 const commandUsageType = 'command';
+const bitsUsageType = 'bits';
+const defaultRewardId = 'xxx-xxx-xxx-xxx';
+
+const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
+
+const chatbotConfig = setupYamlConfigs();
+const expressPort = chatbotConfig.express_port;
 
 if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
-    console.log(`Usage type is neither "${channelPointsUsageType}" nor "${commandUsageType}", app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
+    console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
 }
-
 
 const redirectUri = `http://localhost:${expressPort}/callback`;
 
@@ -43,18 +45,15 @@ const client = new tmi.Client({
 
 client.connect().catch(console.error);
 
-console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel "${chatbotConfig.channel_name}"`);
+console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel '${chatbotConfig.channel_name}'`);
 
 client.on('message', async (channel, tags, message, self) => {
     if(self) return;
 
     let messageToLower = message.toLowerCase();
 
-    if(chatbotConfig.usage_type === commandUsageType && messageToLower.startsWith('!songrequest')) {
-        let result = await handleSongRequest(channel, tags, message, true);
-        if(!result) {
-            client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
-        }
+    if(chatbotConfig.usage_type === commandUsageType && messageToLower.includes(chatbotConfig.command_alias)) {
+        await handleSongRequest(channel, tags.username, message, true);
     } else if (chatbotConfig.use_song_command && messageToLower === '!song') {
         await handleTrackName(channel);
     }
@@ -64,13 +63,42 @@ client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
 
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
-        let result = await handleSongRequest(channel, tags, message, false);
+        let result = await handleSongRequest(channel, tags.username, message, false);
         if(!result) {
             client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
         }
     }
 });
+
+client.on('cheer', async (channel, state, message) => {
+    let bitsParse = parseInt(state.bits);
+    let bits = isNaN(bitsParse) ? 0 : bitsParse;
+
+    if(chatbotConfig.usage_type === bitsUsageType
+            && message.includes(spotifyShareUrlMaker)
+            && bits >= chatbotConfig.minimum_requred_bits) {
+        let username = state['display-name'];
+        console.log(username);
+
+        let result = await handleSongRequest(channel, username, message, true);
+        if(!result) {
+            console.log(`${username} tried cheering for the song request, but it failed (broken link or something). You will have to add it manually`);
+        }
+    }
+
+    return;
+});
+
+let parseActualSongUrlFromBigMessage = (message) => {
+    const regex = new RegExp(`${spotifyShareUrlMaker}[^\\s]+`);
+    let match = message.match(regex);
+    if (match !== null) {
+        return match[0];
+    } else {
+        return null;
+    }
+};
 
 let handleTrackName = async (channel) => {
     try {
@@ -100,19 +128,37 @@ let printTrackName = async (channel) => {
     client.say(channel, `${artists} - ${trackName}`);
 }
 
-let handleSongRequest = async (channel, tags, message, runAsCommand) => {
-    let validatedSongId = await validateSongRequest(message, channel, tags, runAsCommand);
+let handleSongRequest = async (channel, username, message, runAsCommand) => {
+    let validatedSongId = await validateSongRequest(message, channel, username, runAsCommand);
     if(!validatedSongId) {
         return false;
     }
+
+    return await addValidatedSongToQueue(validatedSongId, channel);
+}
+
+let addValidatedSongToQueue = async (songId, channel) => {
     try {
-        await addSongToQueue(validatedSongId, channel);
+        await addSongToQueue(songId, channel);
     } catch (error) {
         // Token expired
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
-            await addSongToQueue(validatedSongId, channel);
-        } else {
+            await addSongToQueue(songId, channel);
+        }
+        // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
+        if(error?.response?.data?.error?.status === 404) {
+            client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
+            return false;
+        }
+        if(error?.response?.status === 403) {
+            client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium OSFrog`);
+            return false;
+        }
+        else {
+            console.log('ERROR WHILE REACHING SPOTIFY');
+            console.log(error?.response?.data);
+            console.log(error?.response?.status);
             return false;
         }
     }
@@ -131,31 +177,28 @@ let searchTrackID = async (searchString) => {
     return searchResponse.data.tracks.items[0]?.id;
 }
 
-let validateSongRequest = async (message, channel, tags, runAsCommand) => {
-    let url = '', searchString = '';
+let validateSongRequest = async (message, channel, username, runAsCommand) => {
+    let url = '';
     let usernameParams = {
-        username: tags.username
+        username: username
     };
 
     if(runAsCommand) {
-        let splitMessage = message.split(' ');
+        let spotifyUrl = parseActualSongUrlFromBigMessage(message);
 
-        if (splitMessage.length < 2) {
+        if (spotifyUrl === null) {
             client.say(channel, handleMessageQueries(chatbotConfig.usage_message, usernameParams));
             return false;
         }
 
-        url = splitMessage[1];
-        splitMessage.shift();
-        searchString = splitMessage.join(' ');
+        url = spotifyUrl;
     } else {
         url = message;
-        searchString = message;
     }
 
-    if(!url.includes('https://open.spotify.com/track/')) {
+    if(!url.includes(spotifyShareUrlMaker)) {
         try {
-            return await searchTrackID(searchString);
+            return await searchTrackID(message);
         } catch (error) {
             // Token expired
             if(error?.response?.data?.error?.status === 401) {
@@ -165,9 +208,9 @@ let validateSongRequest = async (message, channel, tags, runAsCommand) => {
                 return false;
             }
         }
-    } else {
-        return getTrackId(url);
     }
+
+    return getTrackId(url);
 }
 
 let getTrackId = (url) => {
@@ -281,8 +324,17 @@ open(`http://localhost:${expressPort}/login`);
 function setupYamlConfigs () {
     const configFile = fs.readFileSync('spotipack_config.yaml', 'utf8');
     let fileConfig = YAML.parse(configFile);
+
+    checkIfSetupIsCorrect(fileConfig);
+
     return fileConfig;
 };
+
+function checkIfSetupIsCorrect(fileConfig) {
+    if (fileConfig.usage_type === channelPointsUsageType && fileConfig.custom_reward_id === defaultRewardId) {
+        console.log(`!ERROR!: You have set 'usage_type' to 'channel_points', but didn't provide a custom Reward ID. Refer to the manual to get the Reward ID value, or change the usage type`);
+    }
+}
 
 function handleMessageQueries (message, params) {
     let newMessage = message;
