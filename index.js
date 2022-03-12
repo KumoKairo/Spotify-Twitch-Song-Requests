@@ -151,8 +151,18 @@ let validateSongRequest = async (message, channel, tags, runAsCommand) => {
         searchString = message;
     }
 
-    if(!url.includes("https://open.spotify.com/track/")) {
-        return searchTrackID(searchString);
+    if(!url.includes('https://open.spotify.com/track/')) {
+        try {
+            return await searchTrackID(searchString);
+        } catch (error) {
+            // Token expired
+            if(error?.response?.data?.error?.status === 401) {
+                await refreshAccessToken();
+                await validateSongRequest(message, channel, tags, runAsCommand);
+            } else {
+                return false;
+            }
+        }
     } else {
         return getTrackId(url);
     }
