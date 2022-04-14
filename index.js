@@ -65,6 +65,7 @@ client.on('redeem', async (channel, username, rewardType, tags, message) => {
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags.username, message, false);
         if(!result) {
+            client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
         }
     }
@@ -74,7 +75,7 @@ client.on('cheer', async (channel, state, message) => {
     let bitsParse = parseInt(state.bits);
     let bits = isNaN(bitsParse) ? 0 : bitsParse;
 
-    if(chatbotConfig.usage_type === bitsUsageType 
+    if(chatbotConfig.usage_type === bitsUsageType
             && message.includes(spotifyShareUrlMaker)
             && bits >= chatbotConfig.minimum_requred_bits) {
         let username = state['display-name'];
@@ -108,7 +109,7 @@ let handleTrackName = async (channel) => {
             await refreshAccessToken();
             await printTrackName(channel);
         } else {
-            client.say(chatbotConfig.channel_name, `Seems like no music is playing right now`);
+            client.say(chatbotConfig.channel_name, 'Seems like no music is playing right now');
         }
     }
 }
@@ -116,7 +117,7 @@ let handleTrackName = async (channel) => {
 let printTrackName = async (channel) => {
     let spotifyHeaders = getSpotifyHeaders();
 
-    let res = await axios.get(`https://api.spotify.com/v1/me/player/currently-playing`, {
+    let res = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
         headers: spotifyHeaders
     });
 
@@ -130,7 +131,6 @@ let printTrackName = async (channel) => {
 let handleSongRequest = async (channel, username, message, runAsCommand) => {
     let validatedSongId = await validateSongRequest(message, channel, username, runAsCommand);
     if(!validatedSongId) {
-        client.say(channel, `Either the URL is incorrect, or I couldn't find the song on Spotify`);
         return false;
     }
 
@@ -150,7 +150,7 @@ let addValidatedSongToQueue = async (songId, channel) => {
         if(error?.response?.data?.error?.status === 404) {
             client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
             return false;
-        } 
+        }
         if(error?.response?.status === 403) {
             client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium OSFrog`);
             return false;
@@ -166,9 +166,10 @@ let addValidatedSongToQueue = async (songId, channel) => {
     return true;
 }
 
-// Thanks AdamMcD94
 let searchTrackID = async (searchString) => {
     let spotifyHeaders = getSpotifyHeaders();
+    searchString = searchString.replace(/-/, ' ');
+    searchString = searchString.replace(/ by /, ' ');
     searchString = encodeURIComponent(searchString);
     const searchResponse = await axios.get(`https://api.spotify.com/v1/search?q=${searchString}&type=track`, {
         headers: spotifyHeaders
@@ -196,7 +197,17 @@ let validateSongRequest = async (message, channel, username, runAsCommand) => {
     }
 
     if(!url.includes(spotifyShareUrlMaker)) {
-        return searchTrackID(message);
+        try {
+            return await searchTrackID(message);
+        } catch (error) {
+            // Token expired
+            if(error?.response?.data?.error?.status === 401) {
+                await refreshAccessToken();
+                await validateSongRequest(message, channel, tags, runAsCommand);
+            } else {
+                return false;
+            }
+        }
     }
 
     return getTrackId(url);
@@ -241,7 +252,7 @@ let refreshAccessToken = async () => {
     params.append('redirect_uri', `http://localhost:${expressPort}/callback`);
 
     try {
-        let res = await axios.post(`https://accounts.spotify.com/api/token`, params, {
+        let res = await axios.post('https://accounts.spotify.com/api/token', params, {
             headers: {
                 'Content-Type':'application/x-www-form-urlencoded',
                 'Authorization': 'Basic ' + Buffer.from(client_id + ':' + client_secret).toString('base64')
@@ -274,7 +285,7 @@ app.get('/login', (req, res) => {
 
 app.get('/callback', async (req, res) => {
     let code = req.query.code || null;
-    
+
     if (!code) {
         // Print error
         return;
@@ -344,5 +355,5 @@ function handleMessageQueries (message, params) {
 function log(message) {
     if(chatbotConfig.logs) {
         console.log(message);
-    }    
+    }
 }
