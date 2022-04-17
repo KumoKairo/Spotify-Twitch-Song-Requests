@@ -19,6 +19,7 @@ const channelPointsUsageType = 'channel_points';
 const commandUsageType = 'command';
 const bitsUsageType = 'bits';
 const defaultRewardId = 'xxx-xxx-xxx-xxx';
+const displayNameTag = 'display-name';
 
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
@@ -54,7 +55,10 @@ client.on('message', async (channel, tags, message, self) => {
 
     if(chatbotConfig.usage_type === commandUsageType && messageToLower.includes(chatbotConfig.command_alias)) {
         await handleSongRequest(channel, tags.username, message, true);
-    } else if (chatbotConfig.use_song_command && messageToLower === '!song') {
+    } else if (messageToLower === chatbotConfig.skip_alias) {
+        await handleSkipSong(channel, tags, message);
+    }
+    else if (chatbotConfig.use_song_command && messageToLower === '!song') {
         await handleTrackName(channel);
     }
 });
@@ -78,7 +82,7 @@ client.on('cheer', async (channel, state, message) => {
     if(chatbotConfig.usage_type === bitsUsageType
             && message.includes(spotifyShareUrlMaker)
             && bits >= chatbotConfig.minimum_requred_bits) {
-        let username = state['display-name'];
+        let username = state[displayNameTag];
         console.log(username);
 
         let result = await handleSongRequest(channel, username, message, true);
@@ -355,5 +359,22 @@ function handleMessageQueries (message, params) {
 function log(message) {
     if(chatbotConfig.logs) {
         console.log(message);
+    }
+}
+
+async function handleSkipSong(channel, tags, message) {
+    try {
+        let userNameClean = tags[displayNameTag].toLowerCase();
+
+        // If the user is a MOD      OR   It's the streamers themselves
+        if(tags.mod || userNameClean === chatbotConfig.channel_name.toLowerCase()) {
+            console.log(`${userNameClean} skipped the song`);
+            let spotifyHeaders = getSpotifyHeaders();
+            res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
+        }
+    } catch (error) {
+        // Skipping the error for now, let the users spam it
+        // 403 error of not having premium is the same as with the request,
+        // ^ TODO get one place to handle common Spotify error codes
     }
 }
