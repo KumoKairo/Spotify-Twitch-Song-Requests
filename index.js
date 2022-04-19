@@ -138,17 +138,17 @@ let handleSongRequest = async (channel, username, message, runAsCommand) => {
         return false;
     }
 
-    return await addValidatedSongToQueue(validatedSongId, channel);
+    return await addValidatedSongToQueue(validatedSongId, channel, username);
 }
 
-let addValidatedSongToQueue = async (songId, channel) => {
+let addValidatedSongToQueue = async (songId, channel, username) => {
     try {
-        await addSongToQueue(songId, channel);
+        await addSongToQueue(songId, channel, username);
     } catch (error) {
         // Token expired
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
-            await addSongToQueue(songId, channel);
+            await addSongToQueue(songId, channel, username);
         }
         // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
         if(error?.response?.data?.error?.status === 404) {
@@ -243,7 +243,8 @@ let addSongToQueue = async (songId, channel) => {
 
     let trackParams = {
         artists: artists,
-        trackName: trackName
+        trackName: trackName,
+        username: username
     }
 
     client.say(channel, handleMessageQueries(chatbotConfig.added_to_queue_message, trackParams));
