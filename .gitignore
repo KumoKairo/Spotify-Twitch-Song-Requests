@@ -121,4 +121,8 @@ dist
 dist
 bins
 *.zip
+<<<<<<< HEAD
 spotipack_config.yaml
+=======
+spotipack_config.yaml
+>>>>>>> b90bcf478968eeecbccff51e5bfd4aaf29545808
