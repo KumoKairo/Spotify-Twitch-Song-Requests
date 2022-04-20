@@ -229,7 +229,7 @@ let getTrackInfo = async (trackId) => {
     return trackInfo.data;
 }
 
-let addSongToQueue = async (songId, channel, username) => {
+let addSongToQueue = async (songId, channel) => {
     let spotifyHeaders = getSpotifyHeaders();
 
     let trackInfo = await getTrackInfo(songId);
