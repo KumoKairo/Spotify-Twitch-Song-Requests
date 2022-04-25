@@ -30,6 +30,7 @@ if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_ty
     console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
 }
 
+
 const redirectUri = `http://localhost:${expressPort}/callback`;
 
 const client = new tmi.Client({
@@ -53,7 +54,7 @@ client.on('message', async (channel, tags, message, self) => {
 
     let messageToLower = message.toLowerCase();
 
-    if(chatbotConfig.usage_type === commandUsageType && messageToLower.includes(chatbotConfig.command_alias)) {
+    if(chatbotConfig.usage_type === commandUsageType && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])) {
         await handleSongRequest(channel, tags.username, message, true);
     } else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags, message);
@@ -91,7 +92,7 @@ client.on('cheer', async (channel, state, message) => {
         }
     }
 
-    return;
+
 });
 
 let parseActualSongUrlFromBigMessage = (message) => {
@@ -329,7 +330,7 @@ function setupYamlConfigs () {
     const configFile = fs.readFileSync('spotipack_config.yaml', 'utf8');
     let fileConfig = YAML.parse(configFile);
 
-    checkIfSetupIsCorrect(fileConfig);
+    fileConfig = checkIfSetupIsCorrect(fileConfig);
 
     return fileConfig;
 };
@@ -338,6 +339,16 @@ function checkIfSetupIsCorrect(fileConfig) {
     if (fileConfig.usage_type === channelPointsUsageType && fileConfig.custom_reward_id === defaultRewardId) {
         console.log(`!ERROR!: You have set 'usage_type' to 'channel_points', but didn't provide a custom Reward ID. Refer to the manual to get the Reward ID value, or change the usage type`);
     }
+    // check if we have any aliases if we are using commands
+    if (fileConfig.usage_type === commandUsageType && fileConfig.command_alias.length === 0) {
+        console.log(`!ERROR!: You have set 'usage_type' to 'command', but didn't provide any command aliases. Please add an alias to be able to request songs`);
+    }
+    else {
+        for (let i = 0; i < fileConfig.command_alias.length - 1; i++) {
+            fileConfig.command_alias[i] = fileConfig.command_alias[i].toLowerCase();
+        }
+    }
+    return fileConfig;
 }
 
 function handleMessageQueries (message, params) {

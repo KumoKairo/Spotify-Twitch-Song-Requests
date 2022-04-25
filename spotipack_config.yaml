@@ -8,7 +8,7 @@ custom_reward_id: "xxx-xxx-xxx-xxx"  # reward ID for the Channel Points redempti
 express_port: 8888
 logs: FALSE
 usage_type: "command" # can be either "channel_points", "command" or "bits"
-command_alias: "!songrequest" # can be switched to something custom like "!sr" for brevity
+command_alias: ["!songrequest", "!sr"] # ["a", "b", ...] all valid aliases to request songs if usage mode is "command"
 use_song_command: TRUE # add !song command that displays currently playing song. FALSE if you don't want it
 minimum_requred_bits: 1 # works if usage mode is set to "bits"
 skip_alias: "!skip" # alias for the "Skip Song" command
