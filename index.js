@@ -57,7 +57,7 @@ client.on('message', async (channel, tags, message, self) => {
     if(chatbotConfig.usage_type === commandUsageType && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])) {
         await handleSongRequest(channel, tags.username, message, true);
     } else if (messageToLower === chatbotConfig.skip_alias) {
-        await handleSkipSong(channel, tags, message);
+        await handleSkipSong(channel, tags);
     }
     else if (chatbotConfig.use_song_command && messageToLower === '!song') {
         await handleTrackName(channel);
@@ -103,7 +103,7 @@ let parseActualSongUrlFromBigMessage = (message) => {
     } else {
         return null;
     }
-};
+}
 
 let handleTrackName = async (channel) => {
     try {
@@ -333,7 +333,7 @@ function setupYamlConfigs () {
     fileConfig = checkIfSetupIsCorrect(fileConfig);
 
     return fileConfig;
-};
+}
 
 function checkIfSetupIsCorrect(fileConfig) {
     if (fileConfig.usage_type === channelPointsUsageType && fileConfig.custom_reward_id === defaultRewardId) {
@@ -373,7 +373,7 @@ function log(message) {
     }
 }
 
-async function handleSkipSong(channel, tags, message) {
+async function handleSkipSong(channel, tags) {
     try {
         let userNameClean = tags[displayNameTag].toLowerCase();
 
