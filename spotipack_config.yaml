@@ -1,6 +1,5 @@
 user_name: "REPLACE THIS"                # Name of the user you are connecting as (messages will be sent via this user)
 channel_name: "REPLACE THIS"             # Name of the channel this bot is working on (can be same as the user name, if the streamer wants to post messages as himself)
-usage_message: "$(username), usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)"  # Command is called without any arguments
 wrong_format_message: "$(username), sorry, but only Spotify Share URLs are supported"             # Command arguments are not recognized as a Spotify share link URL
 added_to_queue_message: "\"$(artists) - $(trackName)\" is added to the queue catJAM"                  # Successfully added the song to the queue
 song_not_found: "Sorry, I was unable to find that song on Spotify."                  # Song search returned 0 results
