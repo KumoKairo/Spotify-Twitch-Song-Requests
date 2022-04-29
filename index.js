@@ -8,6 +8,11 @@ const axios = require('axios').default;
 
 const open = require('open');
 
+const {response} = require("express");
+
+const { ToadScheduler, SimpleIntervalJob, AsyncTask } = require('toad-scheduler');
+const scheduler = new ToadScheduler();
+
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 
@@ -25,6 +30,17 @@ const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
 const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
+
+// TWITCH SETUP
+const testToken = chatbotConfig.test_token;
+const testID = chatbotConfig.test_id;
+// Validate token as required by Twitch API
+const validateTask = new AsyncTask('ValidateTwitchToken', validateTwitchToken);
+const validate = new SimpleIntervalJob({hours: 1, runImmediately: true}, validateTask);
+scheduler.addSimpleIntervalJob(validate);
+
+
+
 
 if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
     console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
@@ -66,12 +82,13 @@ client.on('message', async (channel, tags, message, self) => {
 
 client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
-
+    //await createReward();
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
         if(!result) {
             client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
+            await refundPoints(tags.id);
         }
     }
 });
@@ -379,5 +396,89 @@ async function handleSkipSong(channel, tags) {
         // Skipping the error for now, let the users spam it
         // 403 error of not having premium is the same as with the request,
         // ^ TODO get one place to handle common Spotify error codes
+    }
+}
+
+// TWITCH REFUNDS
+function getTwitchHeaders () {
+    return {
+        'Authorization' : `Bearer ${testToken}`,
+        'Client-ID' : testID
+    };
+}
+
+// TODO: clean up code
+async function validateTwitchToken() {
+    try {
+        let res = await axios.get('https://id.twitch.tv/oauth2/validate', {headers: {'Authorization' : `OAuth ${testToken}`}})
+        if (res.status === 401) {
+            console.log('Twitch token validation failed. Have you revoked the token?');
+            console.log('Refunds will not work.');
+            scheduler.stop();
+        } else if (res.status === 200 && !res.data['scopes'].includes('channel:manage:redemptions')) {
+            console.log('For refunds to work, please make sure to add "channel:manage:redemptions" to the OAuth scopes.');
+            scheduler.stop();
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// TODO: clean up code
+async function refundPoints(id) {
+    let broadcasterId;
+    try {
+        broadcasterId = await getBroadcasterId();
+        console.log(broadcasterId);
+        let res = await axios.patch(`https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions`,
+            {'status' : 'CANCELED'},
+            {
+                params: {
+                    'id' : id,
+                    'broadcaster_id' : broadcasterId,
+                    'reward_id' : chatbotConfig.custom_reward_id
+                },
+                headers: getTwitchHeaders()
+            });
+    } catch (error) {
+        console.log(error);
+    }
+
+}
+
+// TODO: clean up code
+async function getBroadcasterId() {
+    try {
+        let res = await axios.get('https://api.twitch.tv/helix/users',
+        {
+            params: {'login': chatbotConfig.channel_name},
+            headers: getTwitchHeaders()
+        });
+        if (res.status !== 200) {
+            console.log(res.data);
+            return '';
+        }
+        return res.data.data[0].id;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// TODO
+// need to make our own reward - have user set up details
+async function createReward() {
+    try {
+        let res = await axios.post('https://api.twitch.tv/helix/channel_points/custom_rewards',
+            {
+                'title': 'test',
+                'cost': 300,
+                'is_user_input_required' : true
+            },
+            {
+                params : { 'broadcaster_id' : await getBroadcasterId() },
+                headers : getTwitchHeaders()
+            });
+    } catch (error) {
+        console.log(error);
     }
 }
