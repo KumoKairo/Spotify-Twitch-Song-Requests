@@ -54,7 +54,7 @@ client.on('message', async (channel, tags, message, self) => {
     let messageToLower = message.toLowerCase();
 
     if(chatbotConfig.usage_type === commandUsageType && messageToLower.includes(chatbotConfig.command_alias)) {
-        await handleSongRequest(channel, tags.username, message, true);
+        await handleSongRequest(channel, tags[displayNameTag], message, true);
     } else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags, message);
     }
@@ -67,7 +67,7 @@ client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
 
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
-        let result = await handleSongRequest(channel, tags.username, message, false);
+        let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
         if(!result) {
             client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
@@ -83,7 +83,6 @@ client.on('cheer', async (channel, state, message) => {
             && message.includes(spotifyShareUrlMaker)
             && bits >= chatbotConfig.minimum_requred_bits) {
         let username = state[displayNameTag];
-        console.log(username);
 
         let result = await handleSongRequest(channel, username, message, true);
         if(!result) {
@@ -138,17 +137,17 @@ let handleSongRequest = async (channel, username, message, runAsCommand) => {
         return false;
     }
 
-    return await addValidatedSongToQueue(validatedSongId, channel);
+    return await addValidatedSongToQueue(validatedSongId, channel, username);
 }
 
-let addValidatedSongToQueue = async (songId, channel) => {
+let addValidatedSongToQueue = async (songId, channel, callerUsername) => {
     try {
-        await addSongToQueue(songId, channel);
+        await addSongToQueue(songId, channel, callerUsername);
     } catch (error) {
         // Token expired
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
-            await addSongToQueue(songId, channel);
+            await addSongToQueue(songId, channel, callerUsername);
         }
         // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
         if(error?.response?.data?.error?.status === 404) {
@@ -229,7 +228,7 @@ let getTrackInfo = async (trackId) => {
     return trackInfo.data;
 }
 
-let addSongToQueue = async (songId, channel) => {
+let addSongToQueue = async (songId, channel, callerUsername) => {
     let spotifyHeaders = getSpotifyHeaders();
 
     let trackInfo = await getTrackInfo(songId);
@@ -243,7 +242,8 @@ let addSongToQueue = async (songId, channel) => {
 
     let trackParams = {
         artists: artists,
-        trackName: trackName
+        trackName: trackName,
+        username: callerUsername
     }
 
     client.say(channel, handleMessageQueries(chatbotConfig.added_to_queue_message, trackParams));
