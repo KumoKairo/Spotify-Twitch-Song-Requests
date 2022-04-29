@@ -132,9 +132,10 @@ let printTrackName = async (channel) => {
     client.say(channel, `${artists} - ${trackName}`);
 }
 
-let handleSongRequest = async (channel, username, message, runAsCommand) => {
-    let validatedSongId = await validateSongRequest(message, channel, username, runAsCommand);
+let handleSongRequest = async (channel, username, message) => {
+    let validatedSongId = await validateSongRequest(message, channel);
     if(!validatedSongId) {
+        client.say(channel, `${username}, I was unable to find anything.`);
         return false;
     }
 
@@ -171,6 +172,11 @@ let addValidatedSongToQueue = async (songId, channel, callerUsername) => {
 }
 
 let searchTrackID = async (searchString) => {
+    // Excluding command aliases from the query string
+    chatbotConfig.command_alias.forEach(alias => {
+        searchString = searchString.replace(alias, '');
+    });
+
     let spotifyHeaders = getSpotifyHeaders();
     searchString = searchString.replace(/-/, ' ');
     searchString = searchString.replace(/ by /, ' ');
@@ -181,25 +187,11 @@ let searchTrackID = async (searchString) => {
     return searchResponse.data.tracks.items[0]?.id;
 }
 
-let validateSongRequest = async (message, channel, username, runAsCommand) => {
-    let url = '';
-    let usernameParams = {
-        username: username
-    };
+let validateSongRequest = async (message, channel) => {
+    // If it contains a link, just use it as is
+    let url = parseActualSongUrlFromBigMessage(message) ?? '';
 
-    if(runAsCommand) {
-        let spotifyUrl = parseActualSongUrlFromBigMessage(message);
-
-        if (spotifyUrl === null) {
-            client.say(channel, handleMessageQueries(chatbotConfig.usage_message, usernameParams));
-            return false;
-        }
-
-        url = spotifyUrl;
-    } else {
-        url = message;
-    }
-
+    // If the message doesn't contain a link, we take it and trying to search for the song name
     if(!url.includes(spotifyShareUrlMaker)) {
         try {
             return await searchTrackID(message);
@@ -207,7 +199,7 @@ let validateSongRequest = async (message, channel, username, runAsCommand) => {
             // Token expired
             if(error?.response?.data?.error?.status === 401) {
                 await refreshAccessToken();
-                await validateSongRequest(message, channel, tags, runAsCommand);
+                await validateSongRequest(message, channel);
             } else {
                 return false;
             }
