@@ -21,7 +21,9 @@ module.exports = class Twitch {
      */
     async init(chatbotConfig, token, id) {
         this.client_id = id;
-        this.token = token;
+        // TMI EXPECTS TOKEN IN FORMAT oauth:xxx
+        // we will remove the oauth part here to make it compatible with twitch
+        this.token = token.slice(6);
 
         // refunds are off
         if (!chatbotConfig.automatic_refunds) {
