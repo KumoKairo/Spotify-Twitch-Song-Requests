@@ -8,8 +8,6 @@ const axios = require('axios').default;
 
 const open = require('open');
 
-const {response} = require("express");
-
 const Twitch = require('./twitchcontroller');
 
 let spotifyRefreshToken = '';
