@@ -73,7 +73,6 @@ client.on('message', async (channel, tags, message, self) => {
 
 client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
-    //await createReward();
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
         if(!result) {
