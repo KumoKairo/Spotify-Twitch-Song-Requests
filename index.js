@@ -8,12 +8,15 @@ const axios = require('axios').default;
 
 const open = require('open');
 
+const Twitch = require('./twitchcontroller');
+
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
+const twitchClientId = process.env.TWITCH_CLIENT_ID;
 
 const channelPointsUsageType = 'channel_points';
 const commandUsageType = 'command';
@@ -25,6 +28,11 @@ const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
 const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
+
+// TWITCH SETUP
+const twitchAPI = new Twitch();
+twitchAPI.init(chatbotConfig, twitchOauthToken, twitchClientId).then(() => chatbotConfig.custom_reward_id = twitchAPI.reward_id);
+
 
 if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
     console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
@@ -51,7 +59,6 @@ console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel '${chat
 
 client.on('message', async (channel, tags, message, self) => {
     if(self) return;
-
     let messageToLower = message.toLowerCase();
 
     if(chatbotConfig.usage_type === commandUsageType && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])) {
@@ -66,12 +73,16 @@ client.on('message', async (channel, tags, message, self) => {
 
 client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
-
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
         if(!result) {
-            client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
-            console.log(`${username} redeemed a song request that couldn't be completed. Don't forget to refund it later!`);
+            // this is duplicated in handleSongRequest().
+            //client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
+            if (await twitchAPI.refundPoints()) {
+                console.log(`${username} redeemed a song request that couldn't be completed. It was refunded automatically.`);
+            } else {
+                console.log(`${username} redeemed a song request that couldn't be completed. It could not be refunded automatically.`);
+            }
         }
     }
 });
