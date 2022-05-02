@@ -24,6 +24,16 @@ module.exports = class Twitch {
         // TMI EXPECTS TOKEN IN FORMAT oauth:xxx
         // we will remove the oauth part here to make it compatible with twitch
         this.token = token.slice(6);
+        if (this.client_id === undefined) {
+            console.log("Client_id not found -> refunds will not work.");
+            this.refunds_active = false;
+            return;
+        }
+        if (this.token === undefined) {
+            console.log("Token not found -> twitch-related things will not work.");
+            this.refunds_active = false;
+            return;
+        }
 
         // refunds are off
         if (!chatbotConfig.automatic_refunds) {
