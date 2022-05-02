@@ -10,6 +10,8 @@ const open = require('open');
 
 const Twitch = require('./twitchcontroller');
 
+const pack = require('./package.json');
+
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 
@@ -28,6 +30,14 @@ const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
 const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
+
+// CHECK FOR UPDATES
+axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-So1ng-Requests/releases/latest")
+    .then(r => {
+        if (r.data.tag_name !== pack.version) {
+            console.log(`An update is available at ${r.data.html_url}`);
+        }
+    }, () => console.log("Failed to check for updates."));
 
 // TWITCH SETUP
 const twitchAPI = new Twitch();
