@@ -32,7 +32,7 @@ const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
 
 // CHECK FOR UPDATES
-axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-So1ng-Requests/releases/latest")
+axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
     .then(r => {
         if (r.data.tag_name !== pack.version) {
             console.log(`An update is available at ${r.data.html_url}`);
