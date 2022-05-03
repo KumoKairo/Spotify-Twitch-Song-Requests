@@ -17,8 +17,9 @@ let spotifyAccessToken = '';
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
-const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
+const twitchOauthTokenRefunds = process.env.TWITCH_OAUTH_TOKEN_REFUNDS;
 const twitchClientId = process.env.TWITCH_CLIENT_ID;
+const twitchOauthToken = process.env.TWITCH_OAUTH_TOKEN;
 
 const channelPointsUsageType = 'channel_points';
 const commandUsageType = 'command';
@@ -41,7 +42,7 @@ axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/r
 
 // TWITCH SETUP
 const twitchAPI = new Twitch();
-twitchAPI.init(chatbotConfig, twitchOauthToken, twitchClientId).then(() => chatbotConfig.custom_reward_id = twitchAPI.reward_id);
+twitchAPI.init(chatbotConfig, twitchOauthTokenRefunds, twitchClientId).then(() => chatbotConfig.custom_reward_id = twitchAPI.reward_id);
 
 
 if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {

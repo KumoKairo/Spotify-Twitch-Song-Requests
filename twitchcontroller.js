@@ -21,16 +21,15 @@ module.exports = class Twitch {
      */
     async init(chatbotConfig, token, id) {
         this.client_id = id;
-        // TMI EXPECTS TOKEN IN FORMAT oauth:xxx
-        // we will remove the oauth part here to make it compatible with twitch
-        this.token = token.slice(6);
+
+        this.token = token.slice();
         if (this.client_id === undefined) {
             console.log("Client_id not found -> refunds will not work.");
             this.refunds_active = false;
             return;
         }
         if (this.token === undefined) {
-            console.log("Token not found -> twitch-related things will not work.");
+            console.log("Token not found -> refunds will not work.");
             this.refunds_active = false;
             return;
         }

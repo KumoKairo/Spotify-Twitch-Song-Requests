@@ -21,3 +21,4 @@ skip_alias: "!skip" # alias for the "Skip Song" command
 # SPOTIFY_CLIENT_SECRET
 # TWITCH_OAUTH_TOKEN
 # TWITCH_CLIENT_ID
+# TWITCH_OAUTH_TOKEN_REFUNDS
