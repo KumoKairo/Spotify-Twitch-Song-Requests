@@ -5,7 +5,7 @@ wrong_format_message: "$(username), sorry, but only Spotify Share URLs are suppo
 added_to_queue_message: "\"$(artists) - $(trackName)\" is added to the queue catJAM"                  # Successfully added the song to the queue
 song_not_found: "Sorry, I was unable to find that song on Spotify."                  # Song search returned 0 results
 custom_reward_id: "xxx-xxx-xxx-xxx"  # reward ID for the Channel Points redemption. Required to be set if usage_type is channel_points
-automatic_refunds: TRUE # enable for automatic refunds. requires additional scopes!
+automatic_refunds: FALSE # enable for automatic refunds. requires additional scopes!
 custom_reward_name: "Song Request"   # reward name
 custom_reward_cost: 500   # reward cost
 express_port: 8888
