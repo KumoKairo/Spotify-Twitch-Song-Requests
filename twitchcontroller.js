@@ -21,8 +21,15 @@ module.exports = class Twitch {
      */
     async init(chatbotConfig, token, id) {
         this.client_id = id;
-
         this.token = token;
+
+        // refunds are off
+        if (!chatbotConfig.automatic_refunds) {
+            this.refunds_active = false;
+            this.reward_id = chatbotConfig.custom_reward_id;
+            return;
+        }
+
         if (this.client_id === undefined) {
             console.log("Client_id not found -> refunds will not work.");
             this.reward_id = chatbotConfig.custom_reward_id;
@@ -36,12 +43,7 @@ module.exports = class Twitch {
             return;
         }
 
-        // refunds are off
-        if (!chatbotConfig.automatic_refunds) {
-            this.refunds_active = false;
-            this.reward_id = chatbotConfig.custom_reward_id;
-            return;
-        }
+
 
         // twitch api states we need to validate once per hour
         this.scheduler = new ToadScheduler();
