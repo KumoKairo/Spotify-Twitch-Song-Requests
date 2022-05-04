@@ -27,6 +27,11 @@ const bitsUsageType = 'bits';
 const defaultRewardId = 'xxx-xxx-xxx-xxx';
 const displayNameTag = 'display-name';
 
+const streamer = 'streamer';
+const mod = 'mod';
+const vip = 'vip';
+const everyone = 'everyone';
+
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
 const chatbotConfig = setupYamlConfigs();
@@ -71,7 +76,7 @@ console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel '${chat
 client.on('message', async (channel, tags, message, self) => {
     if(self) return;
     let messageToLower = message.toLowerCase();
-
+    
     if(chatbotConfig.usage_type === commandUsageType && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])) {
         await handleSongRequest(channel, tags[displayNameTag], message, true);
     } else if (messageToLower === chatbotConfig.skip_alias) {
@@ -391,13 +396,25 @@ async function handleSkipSong(channel, tags) {
     try {
         let userNameClean = tags[displayNameTag].toLowerCase();
 
-        // If the user is a MOD      OR   It's the streamers themselves
-        if(tags.mod || userNameClean === chatbotConfig.channel_name.toLowerCase()) {
-            console.log(`${userNameClean} skipped the song`);
+        // If the user is the streamer 
+        let userCanSkip = chatbotConfig.channel_name.toLowerCase() === userNameClean;
+        
+        // Or if it's a mod
+        userCanSkip |= chatbotConfig.skip_user_level.includes(mod) && tags.mod;
+        
+        // Or if it's a VIP
+        userCanSkip |= chatbotConfig.skip_user_level.includes(vip) && tags.badges?.vip === '1';
+        
+        // Or if the tag is set to "everyone"
+        userCanSkip |= chatbotConfig.skip_user_level.includes(everyone);
+
+        if(userCanSkip) {
+            console.log(`${tags[displayNameTag]} skipped the song`);
             let spotifyHeaders = getSpotifyHeaders();
             res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
         }
     } catch (error) {
+        console.log(error);
         // Skipping the error for now, let the users spam it
         // 403 error of not having premium is the same as with the request,
         // ^ TODO get one place to handle common Spotify error codes
