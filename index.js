@@ -73,7 +73,7 @@ client.on('message', async (channel, tags, message, self) => {
     let messageToLower = message.toLowerCase();
 
     if(chatbotConfig.usage_type === commandUsageType && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])) {
-        await handleSongRequest(channel, tags[displayNameTag], message, true);
+        await handleSongRequest(channel, tags[displayNameTag], message);
     } else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
     }
@@ -85,10 +85,8 @@ client.on('message', async (channel, tags, message, self) => {
 client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
     if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
-        let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
+        let result = await handleSongRequest(channel, tags[displayNameTag], message);
         if(!result) {
-            // this is duplicated in handleSongRequest().
-            //client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             if (await twitchAPI.refundPoints()) {
                 console.log(`${username} redeemed a song request that couldn't be completed. It was refunded automatically.`);
             } else {
@@ -157,7 +155,7 @@ let printTrackName = async (channel) => {
 let handleSongRequest = async (channel, username, message) => {
     let validatedSongId = await validateSongRequest(message, channel);
     if(!validatedSongId) {
-        client.say(channel, `${username}, I was unable to find anything.`);
+        client.say(channel, handleMessageQueries(chatbotConfig.song_not_found, {username: username}));
         return false;
     }
 
