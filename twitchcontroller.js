@@ -25,11 +25,13 @@ module.exports = class Twitch {
         this.token = token;
         if (this.client_id === undefined) {
             console.log("Client_id not found -> refunds will not work.");
+            this.reward_id = chatbotConfig.custom_reward_id;
             this.refunds_active = false;
             return;
         }
         if (this.token === undefined) {
             console.log("Refund not found -> refunds will not work.");
+            this.reward_id = chatbotConfig.custom_reward_id;
             this.refunds_active = false;
             return;
         }
