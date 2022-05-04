@@ -22,14 +22,14 @@ module.exports = class Twitch {
     async init(chatbotConfig, token, id) {
         this.client_id = id;
 
-        this.token = token.slice();
+        this.token = token;
         if (this.client_id === undefined) {
             console.log("Client_id not found -> refunds will not work.");
             this.refunds_active = false;
             return;
         }
         if (this.token === undefined) {
-            console.log("Token not found -> refunds will not work.");
+            console.log("Refund not found -> refunds will not work.");
             this.refunds_active = false;
             return;
         }
