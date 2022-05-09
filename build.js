@@ -2,7 +2,10 @@ const fs = require('fs-extra');
 const execSync = require('child_process').execSync;
 
 const distDir = 'dist';
-const filesToCopy = [ 'index.js', 'spotipack_config.yaml', 'run.cmd', 'twitchcontroller.js' ];
+const filesToCopy = [   'index.js', 
+                        'twitchcontroller.js',
+                        'spotipack_config.yaml', 
+                        'run.cmd' ];
 
 try {
     let version = fs.readJsonSync('package.json').version;
