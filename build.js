@@ -4,7 +4,8 @@ const execSync = require('child_process').execSync;
 const distDir = 'dist';
 const filesToCopy = [   'index.js', 
                         'twitchcontroller.js',
-                        'spotipack_config.yaml', 
+                        'spotipack_config.yaml',
+                        'package.json', 
                         'run.cmd' ];
 
 try {
