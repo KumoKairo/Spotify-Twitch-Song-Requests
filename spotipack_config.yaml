@@ -2,7 +2,7 @@ user_name: "REPLACE_THIS"                # Name of the user you are connecting a
 channel_name: "REPLACE_THIS"             # Name of the channel this bot is working on (can be same as the user name, if the streamer wants to post messages as himself)
 usage_message: "$(username), usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)"  # Command is called without any arguments
 wrong_format_message: "$(username), sorry, but only Spotify Share URLs are supported"             # Command arguments are not recognized as a Spotify share link URL
-added_to_queue_messages: ["\"$(artists) - $(trackName)\" is added to the queue catJAM", "\"$(artists) - $(trackName)\" is added to the queue rainbowPls"]             # Successfully added the song to the queue
+added_to_queue_messages: ["\"$(artists) - $(trackName)\" is added to the queue catJAM"] # ["message 1", "message 2"]. Successfully added the song to the queue
 song_not_found: "Sorry, I was unable to find that song on Spotify."                  # Song search returned 0 results
 
 ## REWARD / REDEEM STUFF ##
@@ -12,7 +12,7 @@ custom_reward_name: "Song Request"   # reward name
 custom_reward_cost: 500   # reward cost
 
 express_port: 8888
-logs: FALSE
+logs: TRUE
 usage_type: "command" # can be either "channel_points", "command" or "bits"
 command_alias: ["!songrequest", "!sr"] # ["a", "b", ...] all valid aliases to request songs if usage mode is "command"
 use_song_command: TRUE # add !song command that displays currently playing song. FALSE if you don't want it
