@@ -266,7 +266,7 @@ let addSongToQueue = async (songId, channel, callerUsername) => {
         username: callerUsername
     }
 
-    client.say(channel, handleMessageQueries(chatbotConfig.added_to_queue_message, trackParams));
+    client.say(channel, handleMessageQueries(chatbotConfig.added_to_queue_messages, trackParams));
 }
 
 let refreshAccessToken = async () => {
@@ -370,8 +370,8 @@ function checkIfSetupIsCorrect(fileConfig) {
     return fileConfig;
 }
 
-function handleMessageQueries (message, params) {
-    let newMessage = message;
+function handleMessageQueries (messages, params) {
+    let newMessage = messages[Math.floor(Math.random() * messages.length)];
 
     if (params.username) {
         newMessage = newMessage.replace('$(username)', params.username);
