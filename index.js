@@ -30,6 +30,7 @@ const displayNameTag = 'display-name';
 const streamer = 'streamer';
 const mod = 'mod';
 const vip = 'vip';
+const sub = 'sub';
 const everyone = 'everyone';
 
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
@@ -77,7 +78,9 @@ client.on('message', async (channel, tags, message, self) => {
     if(self) return;
     let messageToLower = message.toLowerCase();
     
-    if(chatbotConfig.usage_type === commandUsageType && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])) {
+    if(chatbotConfig.usage_type === commandUsageType 
+        && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])
+        && isUserEligible(channel, tags, chatbotConfig.command_user_level)) {
         await handleSongRequest(channel, tags[displayNameTag], message, true);
     } else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
@@ -393,39 +396,29 @@ function log(message) {
 }
 
 function isUserEligible(channel, tags, rolesArray) {
-    let userNameClean = tags[displayNameTag].toLowerCase();
+    // If the user is the streamer 
+    let userEligible = tags.badges?.broadcaster === '1';
+    
+    // Or if it's a mod
+    userEligible |= rolesArray.includes(mod) && tags.mod;
+    
+    // Or if it's a VIP
+    userEligible |= rolesArray.includes(vip) && tags.badges?.vip === '1';
 
-        // If the user is the streamer 
-        let userCanSkip = chatbotConfig.channel_name.toLowerCase() === userNameClean;
-        
-        // Or if it's a mod
-        userCanSkip |= rolesArray.includes(mod) && tags.mod;
-        
-        // Or if it's a VIP
-        userCanSkip |= rolesArray.includes(vip) && tags.badges?.vip === '1';
-        
-        // Or if the tag is set to "everyone"
-        userCanSkip |= rolesArray.includes(everyone);
+    // Or if it's a subscriber
+    userEligible |= rolesArray.includes(sub) && tags['badge-info']?.subscriber;
+
+    // Or if the tag is set to "everyone"
+    userEligible |= rolesArray.includes(everyone);
+
+    return userEligible > 0;
 }
 
 async function handleSkipSong(channel, tags) {
-    console.log(tags);
     try {
-        let userNameClean = tags[displayNameTag].toLowerCase();
+        let eligible = isUserEligible(channel, tags, chatbotConfig.skip_user_level);
 
-        // If the user is the streamer 
-        let userCanSkip = chatbotConfig.channel_name.toLowerCase() === userNameClean;
-        
-        // Or if it's a mod
-        userCanSkip |= chatbotConfig.skip_user_level.includes(mod) && tags.mod;
-        
-        // Or if it's a VIP
-        userCanSkip |= chatbotConfig.skip_user_level.includes(vip) && tags.badges?.vip === '1';
-        
-        // Or if the tag is set to "everyone"
-        userCanSkip |= chatbotConfig.skip_user_level.includes(everyone);
-
-        if(userCanSkip) {
+        if(eligible) {
             console.log(`${tags[displayNameTag]} skipped the song`);
             let spotifyHeaders = getSpotifyHeaders();
             res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
