@@ -392,7 +392,24 @@ function log(message) {
     }
 }
 
+function isUserEligible(channel, tags, rolesArray) {
+    let userNameClean = tags[displayNameTag].toLowerCase();
+
+        // If the user is the streamer 
+        let userCanSkip = chatbotConfig.channel_name.toLowerCase() === userNameClean;
+        
+        // Or if it's a mod
+        userCanSkip |= rolesArray.includes(mod) && tags.mod;
+        
+        // Or if it's a VIP
+        userCanSkip |= rolesArray.includes(vip) && tags.badges?.vip === '1';
+        
+        // Or if the tag is set to "everyone"
+        userCanSkip |= rolesArray.includes(everyone);
+}
+
 async function handleSkipSong(channel, tags) {
+    console.log(tags);
     try {
         let userNameClean = tags[displayNameTag].toLowerCase();
 

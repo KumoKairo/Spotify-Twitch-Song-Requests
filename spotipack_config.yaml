@@ -15,6 +15,7 @@ express_port: 8888
 logs: TRUE
 usage_type: "command" # can be either "channel_points", "command" or "bits"
 command_alias: ["!songrequest", "!sr"] # ["a", "b", ...] all valid aliases to request songs if usage mode is "command"
+command_user_level: ["streamer", "mod", "vip"] # ["streamer", "mod", "vip", "sub", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
 use_song_command: TRUE # add !song command that displays currently playing song. FALSE if you don't want it
 minimum_requred_bits: 1 # works if usage mode is set to "bits"
 
