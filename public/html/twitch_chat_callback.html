@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body onload="send_auth()">
+  This is a very evil hack to bypass fragment safety on the OAuth token. The app should now have the OAuth token.
+</body>
+
+<script>
+  // very evil hack to bypass fragment safety
+  function send_auth() {
+    console.log(document.location.hash);
+    fetch('http://127.0.0.1:7997/internal/chat_callback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 'data': document.location.hash })
+    }).then(console.log('testing'));
+  }
+</script>
+</html>

@@ -11,7 +11,7 @@ automatic_refunds: FALSE # enable for automatic refunds. requires additional sco
 custom_reward_name: "Song Request"   # reward name
 custom_reward_cost: 500   # reward cost
 
-express_port: 8888
+express_port: 7997
 logs: TRUE
 usage_type: "command" # can be either "channel_points", "command" or "bits"
 command_alias: ["!songrequest", "!sr"] # ["a", "b", ...] all valid aliases to request songs if usage mode is "command"
