@@ -7,6 +7,7 @@ import { parseConfig, Config } from "./utils/config";
 import express, { Express } from 'express';
 import { Frontend } from './frontend/frontend';
 import { TwitchAuthChat } from './twitch/twitch_auth';
+import cors from 'cors';
 
 // Check for updates
 checkUpdates();
@@ -16,6 +17,10 @@ const config: Config = parseConfig("./spotipack_config.yaml");
 
 // Build base app
 const app: Express = express();
+app.use(express.json());
+app.use(cors({
+  origin: '*'
+}));
 
 // Setup frontend
 const frontend = new Frontend(app);
