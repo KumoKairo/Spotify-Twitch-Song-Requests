@@ -1,9 +1,8 @@
 // This file contains all of the authentication for Twitch
 
 import { Config, parseConfig } from "../utils/config";
-import express, { Express, Request, Response } from 'express';
+import { Express, Request, Response } from 'express';
 import open from "open";
-import cors from 'cors';
 
 
 // Constants
@@ -26,10 +25,6 @@ export class TwitchAuthChat {
     this.app = app;
 
     // Internal callback from frontend.ts to get token
-    this.app.use(express.json());
-    this.app.use(cors({
-      origin: '*'
-    }));
 
     // Evil hack to get token
     // TODO: save token to avoid relogging every time
@@ -42,7 +37,7 @@ export class TwitchAuthChat {
   }
 
   public authenticateUser() {
-    // TODO: use querystring
+    // TODO: use url search params
     open(`https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=${CLIENT_ID_CHAT}&redirect_uri=${REDIRECT_URI_CHAT}&scope=chat%3Aread+chat%3Aedit`);
   }
 
