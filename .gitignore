@@ -121,3 +121,6 @@ dist
 dist
 bins
 *.zip
+
+# vscode settings
+.vscode
