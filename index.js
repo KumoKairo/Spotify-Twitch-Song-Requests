@@ -229,7 +229,12 @@ let searchTrackID = async (searchString) => {
     const searchResponse = await axios.get(`https://api.spotify.com/v1/search?q=${searchString}&type=track`, {
         headers: spotifyHeaders
     });
-    return searchResponse.data.tracks.items[0]?.id;
+    let trackId = searchResponse.data.tracks.items[0]?.id;
+    if (chatbotConfig.blocked_tracks.includes(trackId)) {
+        return false;
+    } else {
+        return trackId;
+    }
 }
 
 let validateSongRequest = async (message, channel) => {
@@ -255,7 +260,12 @@ let validateSongRequest = async (message, channel) => {
 }
 
 let getTrackId = (url) => {
-    return url.split('/').pop().split('?')[0];
+    let trackId = url.split('/').pop().split('?')[0];
+    if (chatbotConfig.blocked_tracks.includes(trackId)) {
+        return false;
+    } else {
+        return trackId;
+    }
 }
 
 let getTrackInfo = async (trackId) => {
