@@ -27,6 +27,8 @@ skip_user_level: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. R
 use_cooldown: TRUE # Enable or disable command cooldown
 cooldown_duration: 60 # How long a user has to wait in between song requests in seconds
 
+## BLOCKED TRACKS ##
+blocked_tracks: [""]
 
 # List of ENV variables required at the start:
 # SPOTIFY_CLIENT_ID
