@@ -37,6 +37,8 @@ const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
 
 const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
+const cooldownDuration = chatbotConfig.cooldown_duration * 1000;
+const cooldown = new Set();
 
 // CHECK FOR UPDATES
 axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
@@ -166,6 +168,14 @@ let handleSongRequest = async (channel, username, message) => {
     let validatedSongId = await validateSongRequest(message, channel);
     if(!validatedSongId) {
         client.say(channel, `${username}, I was unable to find anything.`);
+        return false;
+    }  else if (chatbotConfig.use_cooldown && !cooldown.has(username)) {         
+        cooldown.add(username);
+        setTimeout(() => {
+            cooldown.delete(username)
+        }, cooldownDuration);
+    } else if (chatbotConfig.use_cooldown) {
+        client.say(channel, `${username}, Please wait before requesting another song.`);
         return false;
     }
 
