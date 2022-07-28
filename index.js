@@ -83,7 +83,12 @@ client.on('message', async (channel, tags, message, self) => {
     if(chatbotConfig.usage_type === commandUsageType 
         && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])
         && isUserEligible(channel, tags, chatbotConfig.command_user_level)) {
-        await handleSongRequest(channel, tags[displayNameTag], message, true);
+        let args = messageToLower.split(" ")[1];
+            if (!args) {
+                client.say(chatbotConfig.channel_name, `${tags[displayNameTag]}, usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)`);
+            } else {
+                await handleSongRequest(channel, tags[displayNameTag], message, true);
+            }
     } else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
     }
