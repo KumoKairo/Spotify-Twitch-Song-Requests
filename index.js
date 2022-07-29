@@ -34,6 +34,7 @@ const sub = 'sub';
 const everyone = 'everyone';
 
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
+const spotifyShareUriMaker = 'spotify:track:';
 
 const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
@@ -141,6 +142,17 @@ let parseActualSongUrlFromBigMessage = (message) => {
     }
 }
 
+let parseActualSongUriFromBigMessage = (message) => {
+    const regex = new RegExp(`${spotifyShareUriMaker}[^\\s]+`);
+    let match = message.match(regex);
+    if (match !== null) {
+        spotifyIdToUrl = spotifyShareUrlMaker + match[0].split(':')[2];
+        return spotifyIdToUrl;
+    } else {
+        return null;
+    }
+}
+
 let handleTrackName = async (channel) => {
     try {
         await printTrackName(channel);
@@ -201,6 +213,10 @@ let addValidatedSongToQueue = async (songId, channel, callerUsername) => {
             client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
             return false;
         }
+        if(error?.response?.data?.error?.status === 400) {
+            client.say(channel, `${callerUsername}, I was unable to find anything.`);
+            return false;
+        }
         if(error?.response?.status === 403) {
             client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium OSFrog`);
             return false;
@@ -239,10 +255,12 @@ let searchTrackID = async (searchString) => {
 
 let validateSongRequest = async (message, channel) => {
     // If it contains a link, just use it as is
-    let url = parseActualSongUrlFromBigMessage(message) ?? '';
 
-    // If the message doesn't contain a link, we take it and trying to search for the song name
-    if(!url.includes(spotifyShareUrlMaker)) {
+    if (parseActualSongUrlFromBigMessage(message)) {
+        return await getTrackId(parseActualSongUrlFromBigMessage(message));
+    } else if (parseActualSongUriFromBigMessage(message)) {
+        return await getTrackId(parseActualSongUriFromBigMessage(message));
+    } else {
         try {
             return await searchTrackID(message);
         } catch (error) {
@@ -255,8 +273,6 @@ let validateSongRequest = async (message, channel) => {
             }
         }
     }
-
-    return getTrackId(url);
 }
 
 let getTrackId = (url) => {
