@@ -24,7 +24,7 @@ skip_alias: "!skip" # alias for the "Skip Song" command
 skip_user_level: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
 
 ## COMMAND COOLDOWN ##
-use_cooldown: TRUE # Enable or disable command cooldown
+use_cooldown: FALSE # TRUE or FALSE to enable or disable command cooldown
 cooldown_duration: 60 # How long a user has to wait in between song requests in seconds
 
 ## BLOCKED TRACKS ##
