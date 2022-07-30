@@ -34,9 +34,12 @@ const sub = 'sub';
 const everyone = 'everyone';
 
 const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
+const spotifyShareUriMaker = 'spotify:track:';
 
 const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
+const cooldownDuration = chatbotConfig.cooldown_duration * 1000;
+const cooldown = new Set();
 
 // CHECK FOR UPDATES
 axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
@@ -81,7 +84,12 @@ client.on('message', async (channel, tags, message, self) => {
     if(chatbotConfig.usage_type === commandUsageType 
         && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])
         && isUserEligible(channel, tags, chatbotConfig.command_user_level)) {
-        await handleSongRequest(channel, tags[displayNameTag], message, true);
+        let args = messageToLower.split(" ")[1];
+            if (!args) {
+                client.say(chatbotConfig.channel_name, `${tags[displayNameTag]}, usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)`);
+            } else {
+                await handleSongRequest(channel, tags[displayNameTag], message, true);
+            }
     } else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
     }
@@ -134,6 +142,17 @@ let parseActualSongUrlFromBigMessage = (message) => {
     }
 }
 
+let parseActualSongUriFromBigMessage = (message) => {
+    const regex = new RegExp(`${spotifyShareUriMaker}[^\\s]+`);
+    let match = message.match(regex);
+    if (match !== null) {
+        spotifyIdToUrl = spotifyShareUrlMaker + match[0].split(':')[2];
+        return spotifyIdToUrl;
+    } else {
+        return null;
+    }
+}
+
 let handleTrackName = async (channel) => {
     try {
         await printTrackName(channel);
@@ -167,6 +186,14 @@ let handleSongRequest = async (channel, username, message) => {
     if(!validatedSongId) {
         client.say(channel, `${username}, I was unable to find anything.`);
         return false;
+    }  else if (chatbotConfig.use_cooldown && !cooldown.has(username)) {         
+        cooldown.add(username);
+        setTimeout(() => {
+            cooldown.delete(username)
+        }, cooldownDuration);
+    } else if (chatbotConfig.use_cooldown) {
+        client.say(channel, `${username}, Please wait before requesting another song.`);
+        return false;
     }
 
     return await addValidatedSongToQueue(validatedSongId, channel, username);
@@ -184,6 +211,10 @@ let addValidatedSongToQueue = async (songId, channel, callerUsername) => {
         // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
         if(error?.response?.data?.error?.status === 404) {
             client.say(channel, `Hey, ${channel}! You forgot to actually use Spotify this time. Please open it and play some music, then I will be able to add songs to the queue`);
+            return false;
+        }
+        if(error?.response?.data?.error?.status === 400) {
+            client.say(channel, `${callerUsername}, I was unable to find anything.`);
             return false;
         }
         if(error?.response?.status === 403) {
@@ -214,15 +245,22 @@ let searchTrackID = async (searchString) => {
     const searchResponse = await axios.get(`https://api.spotify.com/v1/search?q=${searchString}&type=track`, {
         headers: spotifyHeaders
     });
-    return searchResponse.data.tracks.items[0]?.id;
+    let trackId = searchResponse.data.tracks.items[0]?.id;
+    if (chatbotConfig.blocked_tracks.includes(trackId)) {
+        return false;
+    } else {
+        return trackId;
+    }
 }
 
 let validateSongRequest = async (message, channel) => {
     // If it contains a link, just use it as is
-    let url = parseActualSongUrlFromBigMessage(message) ?? '';
 
-    // If the message doesn't contain a link, we take it and trying to search for the song name
-    if(!url.includes(spotifyShareUrlMaker)) {
+    if (parseActualSongUrlFromBigMessage(message)) {
+        return await getTrackId(parseActualSongUrlFromBigMessage(message));
+    } else if (parseActualSongUriFromBigMessage(message)) {
+        return await getTrackId(parseActualSongUriFromBigMessage(message));
+    } else {
         try {
             return await searchTrackID(message);
         } catch (error) {
@@ -235,12 +273,15 @@ let validateSongRequest = async (message, channel) => {
             }
         }
     }
-
-    return getTrackId(url);
 }
 
 let getTrackId = (url) => {
-    return url.split('/').pop().split('?')[0];
+    let trackId = url.split('/').pop().split('?')[0];
+    if (chatbotConfig.blocked_tracks.includes(trackId)) {
+        return false;
+    } else {
+        return trackId;
+    }
 }
 
 let getTrackInfo = async (trackId) => {
