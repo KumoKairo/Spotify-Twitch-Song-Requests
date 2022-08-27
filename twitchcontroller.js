@@ -30,13 +30,13 @@ module.exports = class Twitch {
             return;
         }
 
-        if (this.client_id === undefined) {
+        if (this.client_id == null) {
             console.log("Client_id not found -> refunds will not work.");
             this.reward_id = chatbotConfig.custom_reward_id;
             this.refunds_active = false;
             return;
         }
-        if (this.token === undefined) {
+        if (this.token == null) {
             console.log("Refund not found -> refunds will not work.");
             this.reward_id = chatbotConfig.custom_reward_id;
             this.refunds_active = false;
