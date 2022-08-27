@@ -31,19 +31,17 @@ module.exports = class Twitch {
         }
 
         if (this.client_id == null) {
-            console.log("Client_id not found -> refunds will not work.");
+            console.error("Client_id not found -> refunds will not work.");
             this.reward_id = chatbotConfig.custom_reward_id;
             this.refunds_active = false;
             return;
         }
         if (this.token == null) {
-            console.log("Refund not found -> refunds will not work.");
+            console.error("Refund not found -> refunds will not work.");
             this.reward_id = chatbotConfig.custom_reward_id;
             this.refunds_active = false;
             return;
         }
-
-
 
         // twitch api states we need to validate once per hour
         this.scheduler = new ToadScheduler();
@@ -57,14 +55,14 @@ module.exports = class Twitch {
 
         // validation failed - disabling refunds.
         if (!this.refunds_active) {
-            console.log("Refunds were enabled, but token validation failed.");
-            console.log("Falling back to default reward_id.");
+            console.error("Refunds were enabled, but token validation failed.");
+            console.error("Falling back to default reward_id.");
             this.reward_id = chatbotConfig.custom_reward_id;
             return;
         }
 
-        this.broadcaster_id = await this.getBroadcasterId(chatbotConfig.channel_name);
-        await this.checkRewardExistence(chatbotConfig);
+       this.broadcaster_id = await this.getBroadcasterId(chatbotConfig.channel_name);
+       await this.checkRewardExistence(chatbotConfig);
     }
 
     /**
@@ -99,7 +97,7 @@ module.exports = class Twitch {
                 this.reward_id = res.data.data[0].id;
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     }
 
@@ -115,17 +113,16 @@ module.exports = class Twitch {
                 }
             })
             if (res.status === 401) {
-                console.log(res.data);
-                console.log('Twitch token validation failed. Have you revoked the token?');
-                console.log('Refunds will not work.');
+                console.error('Twitch token validation failed. Have you revoked the token?');
+                console.error('Refunds will not work.');
                 this.scheduler.stop();
             } else if (res.status === 200 && !res.data['scopes'].includes('channel:manage:redemptions')) {
-                console.log('For refunds to work, please make sure to add "channel:manage:redemptions" to the OAuth scopes.');
+                console.error('For refunds to work, please make sure to add "channel:manage:redemptions" to the OAuth scopes.');
                 this.scheduler.stop();
             }
         } catch (error) {
             this.refunds_active = false;
-            console.log(error);
+            console.error(error);
         }
     }
 
@@ -175,7 +172,7 @@ module.exports = class Twitch {
                 });
             this.reward_id = res.data.data.id;
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     }
 
@@ -197,10 +194,10 @@ module.exports = class Twitch {
                 return res.data.data[0].id;
             }
             // this is fatal and many parts will not work without this, means twitch oauth is broken
-            console.log("Failed to get broadcaster ID!");
-            console.log("This likely means your OAuth token is invalid. Please check your token. If this error persists, contact devs.");
+            console.error("Failed to get broadcaster ID!");
+            console.error("This likely means your OAuth token is invalid. Please check your token. If this error persists, contact devs.");
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     }
 
@@ -221,7 +218,7 @@ module.exports = class Twitch {
                 headers: this.getTwitchHeaders()
             });
             // Check that the returned array isn't empty
-            if (res.data.data.length == 0) {
+            if (res.data.data.length === 0) {
                 console.error(`The redemptions array was empty. ` +
                     `Please make sure that you have not enabled 'skip redemption requests queue.'`);
                 return;
@@ -233,7 +230,7 @@ module.exports = class Twitch {
             }
             return res.data.data[0].id;
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
 
     }

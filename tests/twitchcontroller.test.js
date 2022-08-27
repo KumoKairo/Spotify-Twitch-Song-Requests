@@ -12,7 +12,7 @@ const Twitch = require('../twitchcontroller');
 const token = 'testToken';
 const client_id = 'testClientId';
 const chatbotConfig = {
-  refunds_active: true,
+  automatic_refunds: true,
   custom_reward_id: '123-123-123'
 }
 
@@ -20,41 +20,44 @@ const chatbotConfig = {
  * Axios mock responses
  */
 jest.mock('axios');
-//
 
 
 describe('Twitch', () => {
+  let twitch;
+  beforeEach(() => {
+    twitch = new Twitch();
+  });
+  afterEach(() => {
+    if (twitch.scheduler) {
+      twitch.scheduler.stop();
+    }
+    jest.clearAllTimers();
+    jest.clearAllMocks();
+  });
   describe('initialization', () => {
+
     test('refunds are not active when disabled', async () => {
-      const twitch = new Twitch();
-      chatbotConfig.refunds_active = false;
+      chatbotConfig.automatic_refunds = false;
       await twitch.init(chatbotConfig, token, client_id);
       expect(twitch.refunds_active).toBeFalsy();
-      chatbotConfig.refunds_active = true;
+      chatbotConfig.automatic_refunds = true;
     });
 
     test('refunds are not active when client_id is null', async () => {
-      const twitch = new Twitch();
       await twitch.init(chatbotConfig, token, null);
       expect(twitch.refunds_active).toBeFalsy();
     });
 
     test('refunds are not active when client_id is missing', async () => {
-      const twitch = new Twitch();
       await twitch.init(chatbotConfig, token);
       expect(twitch.refunds_active).toBeFalsy();
     });
 
     test('refunds are active when all are valid', async () => {
-      const twitch = new Twitch();
-      axios.get.mockResolvedValue({
-        'data' :
-          {
-            id: '1'
-          },
-          'scopes' : ['channel:manage:redemptions']
-      });
-      debugger;
+      jest.spyOn(twitch, 'validateTwitchToken').mockResolvedValue(null);
+      jest.spyOn(twitch, 'getBroadcasterId').mockResolvedValue('broadcaster_id');
+      jest.spyOn(twitch, 'checkRewardExistence').mockResolvedValue(null);
+
       await twitch.init(chatbotConfig, token, client_id);
       expect(twitch.refunds_active).toBeTruthy();
     })
