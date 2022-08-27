@@ -52,7 +52,7 @@ module.exports = class Twitch {
         let validateTask = new AsyncTask('ValidateTwitchToken', async () => {
             await this.validateTwitchToken()
         });
-        let validate = new SimpleIntervalJob({hours: 1, runImmediately: true}, validateTask);
+        let validate = new SimpleIntervalJob({ hours: 1, runImmediately: true }, validateTask);
         this.scheduler.addSimpleIntervalJob(validate);
 
         // validation failed - disabling refunds.
@@ -73,8 +73,8 @@ module.exports = class Twitch {
      */
     getTwitchHeaders() {
         return {
-            'Authorization' : `Bearer ${this.token}`,
-            'Client-ID' : this.client_id
+            'Authorization': `Bearer ${this.token}`,
+            'Client-ID': this.client_id
         };
     }
 
@@ -86,11 +86,11 @@ module.exports = class Twitch {
     async checkRewardExistence(chatbotConfig) {
         try {
             let res = await axios.get('https://api.twitch.tv/helix/channel_points/custom_rewards', {
-                params : {
+                params: {
                     'broadcaster_id': this.broadcaster_id,
                     'only_manageable_rewards': true
                 },
-                headers : this.getTwitchHeaders()
+                headers: this.getTwitchHeaders()
             });
             if (res.data.data.length === 0) {
                 await this.createReward(chatbotConfig.custom_reward_name, chatbotConfig.custom_reward_cost);
@@ -109,7 +109,7 @@ module.exports = class Twitch {
     async validateTwitchToken() {
         try {
             let res = await axios.get('https://id.twitch.tv/oauth2/validate', {
-                headers: {'Authorization' : `OAuth ${this.token}`},
+                headers: { 'Authorization': `OAuth ${this.token}` },
                 validateStatus: function (status) {
                     return [401, 200].includes(status);
                 }
@@ -138,13 +138,14 @@ module.exports = class Twitch {
         if (!this.refunds_active) { return false; }
         try {
             let id = await this.getLastRedemptionId();
+            if (id == null) { return false; }
             await axios.patch(`https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions`,
-                {'status' : 'CANCELED'},
+                { 'status': 'CANCELED' },
                 {
                     params: {
-                        'id' : id,
-                        'broadcaster_id' : this.broadcaster_id,
-                        'reward_id' : this.reward_id
+                        'id': id,
+                        'broadcaster_id': this.broadcaster_id,
+                        'reward_id': this.reward_id
                     },
                     headers: this.getTwitchHeaders()
                 });
@@ -166,11 +167,11 @@ module.exports = class Twitch {
                 {
                     'title': name,
                     'cost': parseInt(cost),
-                    'is_user_input_required' : true
+                    'is_user_input_required': true
                 },
                 {
-                    params : { 'broadcaster_id' : this.broadcaster_id },
-                    headers : this.getTwitchHeaders()
+                    params: { 'broadcaster_id': this.broadcaster_id },
+                    headers: this.getTwitchHeaders()
                 });
             this.reward_id = res.data.data.id;
         } catch (error) {
@@ -186,7 +187,7 @@ module.exports = class Twitch {
         try {
             let res = await axios.get('https://api.twitch.tv/helix/users',
                 {
-                    params: {'login': broadcaster_name},
+                    params: { 'login': broadcaster_name },
                     headers: this.getTwitchHeaders(),
                     validateStatus: function (status) {
                         return status < 500;
@@ -219,6 +220,17 @@ module.exports = class Twitch {
                 },
                 headers: this.getTwitchHeaders()
             });
+            // Check that the returned array isn't empty
+            if (res.data.data.length == 0) {
+                console.error(`The redemptions array was empty. ` +
+                    `Please make sure that you have not enabled 'skip redemption requests queue.'`);
+                return;
+            }
+            // If the last redeemed ID was over a minute ago, something is wrong.
+            if (Date.now - Date.parse(res.data.data[0].redeemed_at) < 60_000) {
+                console.error(`The latest reward was redeemed over a minute ago. Please contact the devs.`);
+                return;
+            }
             return res.data.data[0].id;
         } catch (error) {
             console.log(error);
