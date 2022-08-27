@@ -7,12 +7,12 @@ on:
   pull_request_review:
     types: [submitted]
   push:
-    branches: ["master"]
+    branches: ['master']
 
 
 jobs:
   build:
-    if: github.event.review.state == 'approved' || github.event_name == "push"
+    if: github.event.review.state == 'approved' || github.event_name == 'push'
     runs-on: ubuntu-latest
 
     strategy:
