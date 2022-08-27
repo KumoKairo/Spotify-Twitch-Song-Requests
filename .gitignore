@@ -121,3 +121,5 @@ dist
 dist
 bins
 *.zip
+
+.vscode
