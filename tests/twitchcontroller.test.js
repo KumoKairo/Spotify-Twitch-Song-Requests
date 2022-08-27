@@ -19,7 +19,30 @@ const chatbotConfig = {
 /**
  * Axios mock responses
  */
+// TODO: move these to separate file
 jest.mock('axios');
+
+const successfulGetLastRedemptionId = {
+  'data': [
+    {
+      'broadcaster_name': 'corebyte',
+      'broadcaster_login': 'corebyte',
+      'broadcaster_id': '11111',
+      'id': '11111',
+      'user_id': '11111',
+      'user_name': 'corebyte',
+      'user_input': '',
+      'status': 'UNFULFILLED',
+      'redeemed_at': (new Date).toISOString(),
+      'reward': {
+        'id': '11111',
+        'title': 'reward_title',
+        'prompt': '',
+        'cost': 500
+      }
+    }
+  ]
+}
 
 
 describe('Twitch', () => {
@@ -34,26 +57,28 @@ describe('Twitch', () => {
     jest.clearAllTimers();
     jest.clearAllMocks();
   });
-  describe('initialization', () => {
 
-    test('refunds are not active when disabled', async () => {
-      chatbotConfig.automatic_refunds = false;
-      await twitch.init(chatbotConfig, token, client_id);
-      expect(twitch.refunds_active).toBeFalsy();
-      chatbotConfig.automatic_refunds = true;
+  describe('#init', () => {
+    describe('refunds are disabled', () => {
+      it('has refunds disabled in config', async () => {
+        chatbotConfig.automatic_refunds = false;
+        await twitch.init(chatbotConfig, token, client_id);
+        expect(twitch.refunds_active).toBeFalsy();
+        chatbotConfig.automatic_refunds = true;
+      });
+
+      it('has no client_id', async () => {
+        await twitch.init(chatbotConfig, token, null);
+        expect(twitch.refunds_active).toBeFalsy();
+      });
+
+      it('has no token', async () => {
+        await twitch.init(chatbotConfig);
+        expect(twitch.refunds_active).toBeFalsy();
+      });
+
     });
-
-    test('refunds are not active when client_id is null', async () => {
-      await twitch.init(chatbotConfig, token, null);
-      expect(twitch.refunds_active).toBeFalsy();
-    });
-
-    test('refunds are not active when client_id is missing', async () => {
-      await twitch.init(chatbotConfig, token);
-      expect(twitch.refunds_active).toBeFalsy();
-    });
-
-    test('refunds are active when all are valid', async () => {
+    it('is successful', async () => {
       jest.spyOn(twitch, 'validateTwitchToken').mockResolvedValue(null);
       jest.spyOn(twitch, 'getBroadcasterId').mockResolvedValue('broadcaster_id');
       jest.spyOn(twitch, 'checkRewardExistence').mockResolvedValue(null);
@@ -61,7 +86,19 @@ describe('Twitch', () => {
       await twitch.init(chatbotConfig, token, client_id);
       expect(twitch.refunds_active).toBeTruthy();
     })
-  })
+  });
 
 
-})
+  describe('#getLastRedemptionId', () => {
+    beforeEach(() => {
+      jest.spyOn(twitch, 'getTwitchHeaders').mockReturnValue({});
+    })
+    it('has a valid response', async () => {
+      axios.get.mockResolvedValueOnce(successfulGetLastRedemptionId);
+      const result = await twitch.getLastRedemptionId();
+      expect(result).toBe('11111');
+    });
+  });
+
+
+});
