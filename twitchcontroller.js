@@ -135,7 +135,7 @@ module.exports = class Twitch {
         if (!this.refunds_active) { return false; }
         try {
             let id = await this.getLastRedemptionId();
-            if (id == null) { return false; }
+            if (id === null) { return false; }
             await axios.patch(`https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions`,
                 { 'status': 'CANCELED' },
                 {
@@ -221,12 +221,12 @@ module.exports = class Twitch {
             if (res.data.data.length === 0) {
                 console.error(`The redemptions array was empty. ` +
                     `Please make sure that you have not enabled 'skip redemption requests queue.'`);
-                return;
+                return null;
             }
             // If the last redeemed ID was over a minute ago, something is wrong.
-            if (Date.now - Date.parse(res.data.data[0].redeemed_at) < 60_000) {
+            if (Date.now() - Date.parse(res.data.data[0].redeemed_at) > 60_000) {
                 console.error(`The latest reward was redeemed over a minute ago. Please contact the devs.`);
-                return;
+                return null;
             }
             return res.data.data[0].id;
         } catch (error) {

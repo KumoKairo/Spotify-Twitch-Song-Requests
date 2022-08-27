@@ -23,25 +23,55 @@ const chatbotConfig = {
 jest.mock('axios');
 
 const successfulGetLastRedemptionId = {
-  'data': [
-    {
-      'broadcaster_name': 'corebyte',
-      'broadcaster_login': 'corebyte',
-      'broadcaster_id': '11111',
-      'id': '11111',
-      'user_id': '11111',
-      'user_name': 'corebyte',
-      'user_input': '',
-      'status': 'UNFULFILLED',
-      'redeemed_at': (new Date).toISOString(),
-      'reward': {
+  'data': {
+    'data': [
+      {
+        'broadcaster_name': 'corebyte',
+        'broadcaster_login': 'corebyte',
+        'broadcaster_id': '11111',
         'id': '11111',
-        'title': 'reward_title',
-        'prompt': '',
-        'cost': 500
+        'user_id': '11111',
+        'user_name': 'corebyte',
+        'user_input': '',
+        'status': 'UNFULFILLED',
+        'redeemed_at': (new Date).toISOString(),
+        'reward': {
+          'id': '11111',
+          'title': 'reward_title',
+          'prompt': '',
+          'cost': 500
+        }
       }
-    }
-  ]
+    ]
+  }
+}
+const failedEmptyGetLastRedemptionId = {
+  'data': {
+    'data': []
+  }
+}
+const failedPastGetLastRedemptionId = {
+  'data': {
+    'data': [
+      {
+        'broadcaster_name': 'corebyte',
+        'broadcaster_login': 'corebyte',
+        'broadcaster_id': '11111',
+        'id': '11111',
+        'user_id': '11111',
+        'user_name': 'corebyte',
+        'user_input': '',
+        'status': 'UNFULFILLED',
+        'redeemed_at': (new Date(2020, 1, 1)).toISOString(),
+        'reward': {
+          'id': '11111',
+          'title': 'reward_title',
+          'prompt': '',
+          'cost': 500
+        }
+      }
+    ]
+  }
 }
 
 
@@ -92,11 +122,23 @@ describe('Twitch', () => {
   describe('#getLastRedemptionId', () => {
     beforeEach(() => {
       jest.spyOn(twitch, 'getTwitchHeaders').mockReturnValue({});
+    });
+    afterEach(() => {
+      jest.clearAllMocks();
     })
     it('has a valid response', async () => {
       axios.get.mockResolvedValueOnce(successfulGetLastRedemptionId);
-      const result = await twitch.getLastRedemptionId();
-      expect(result).toBe('11111');
+      expect(await twitch.getLastRedemptionId()).toBe('11111');
+    });
+  });
+  describe('is not a valid response', () => {
+    it('is an empty array', async () => {
+      axios.get.mockResolvedValueOnce(failedEmptyGetLastRedemptionId);
+      expect(await twitch.getLastRedemptionId()).toBeNull();
+    });
+    it('is is a past redemption', async () => {
+      axios.get.mockResolvedValueOnce(failedPastGetLastRedemptionId);
+      expect(await twitch.getLastRedemptionId()).toBeNull();
     });
   });
 
