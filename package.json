@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -15,7 +16,10 @@
     "fs-extra": "^10.0.0",
     "open": "^8.4.0",
     "tmi.js": "^1.8.5",
-    "yaml": "^1.10.2",
-    "toad-scheduler": "1.6.0"
+    "toad-scheduler": "1.6.0",
+    "yaml": "^1.10.2"
+  },
+  "devDependencies": {
+    "jest": "^29.0.1"
   }
 }
