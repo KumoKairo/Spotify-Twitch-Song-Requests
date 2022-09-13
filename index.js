@@ -302,7 +302,13 @@ let addSongToQueue = async (songId, channel, callerUsername) => {
 
     let uri = trackInfo.uri;
 
-    res = await axios.post(`https://api.spotify.com/v1/me/player/queue?uri=${uri}`, {}, { headers: spotifyHeaders });
+    let duration = trackInfo.duration_ms * 1000;
+    if (duration > chatbotConfig.max_duration) {
+        client.say(channel, `${trackName} is too long. The max duration is ${chatbotConfig.max_duration} seconds`);
+        return;
+    }
+
+    let res = await axios.post(`https://api.spotify.com/v1/me/player/queue?uri=${uri}`, {}, {headers: spotifyHeaders});
 
     let trackParams = {
         artists: artists,
