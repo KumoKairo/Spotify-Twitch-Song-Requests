@@ -302,7 +302,7 @@ let addSongToQueue = async (songId, channel, callerUsername) => {
 
     let uri = trackInfo.uri;
 
-    let duration = trackInfo.duration_ms * 1000;
+    let duration = trackInfo.duration_ms / 1000;
     if (duration > chatbotConfig.max_duration) {
         client.say(channel, `${trackName} is too long. The max duration is ${chatbotConfig.max_duration} seconds`);
         return;
