@@ -15,6 +15,7 @@ const { username } = require('tmi.js/lib/utils');
 
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
+let voteskipTimeout;
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -42,7 +43,7 @@ const expressPort = chatbotConfig.express_port;
 const cooldownDuration = chatbotConfig.cooldown_duration * 1000;
 const usersOnCooldown = new Set();
 const usersHaveSkipped = new Set();
-const voteskipTimeout;
+
 
 // CHECK FOR UPDATES
 axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
@@ -193,7 +194,7 @@ let handleQueue = async (channel) => {
 let handleVoteSkip = async (channel, username) => {
 
     if (!usersHaveSkipped.has(username)) {
-        startOrProgressVoteskip();
+        startOrProgressVoteskip(channel);
 
         usersHaveSkipped.add(username);
         console.log(`${username} voted to skip the current song (${usersHaveSkipped.size}/${chatbotConfig.required_vote_skip})!`);
@@ -497,15 +498,15 @@ function setupYamlConfigs () {
     return fileConfig;
 }
 
-function startOrProgressVoteskip() {
+function startOrProgressVoteskip(channel) {
     if (usersHaveSkipped.size > 0) {
         clearTimeout(voteskipTimeout);
     }
 
-    voteskipTimeout = setTimeout(resetVoteskip, chatbotConfig.voteskip_timeout * 1000);
+    voteskipTimeout = setTimeout(function() {resetVoteskip(channel)}, chatbotConfig.voteskip_timeout * 1000);
 }
 
-function resetVoteskip() {
+function resetVoteskip(channel) {
     client.say(channel, `Voteskip has timed out... No song will be skipped at this time! catJAM`);
     usersHaveSkipped.clear();
 }
