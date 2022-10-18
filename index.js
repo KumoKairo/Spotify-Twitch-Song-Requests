@@ -212,15 +212,27 @@ let printQueue = async (channel) => {
 	else {
 		let songIndex = 1;
 		let concatenatedQueue = '';
+        let queueDepthIndex = chatbotConfig.queue_display_depth;
 
-		res.data.queue?.forEach((qItem) => {
-			let trackName = qItem.name;
-			let artists = qItem.artists.map(artist => artist.name).join(', '); 
-            concatenatedQueue = concatenatedQueue.concat(concatenatedQueue, ` ${songIndex}) ${artists} - ${trackName}`);
-			songIndex++;
-		})
+        res.data.queue?.every(qItem => {
+            let trackName = qItem.name;
+            let artists = qItem.artists[0];
+            concatQueue += `• ${songIndex}) ${artists} - ${trackName} `;
+
+            queueDepthIndex--;
+            songIndex++;
+
+            // using 'every' to loop instead of 'foreach' allows us to break out of a loop like this
+            // so we can keep it 
+            if (queueDepthIndex <= 1) {
+                return false;
+            }
+            else {
+                return true;
+            }
+        })
 		
-		client.say(channel, `▶️ Current queue:${concatenatedQueue}`);
+        client.say(channel, `▶️ Next ${chatbotConfig.queue_display_depth} songs: ${concatenatedQueue}`);
 	}	
 }
 
