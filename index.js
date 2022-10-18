@@ -177,8 +177,9 @@ let printTrackName = async (channel) => {
     let trackId = res.data.item.id;
     let trackInfo = await getTrackInfo(trackId);
     let trackName = trackInfo.name;
+    let trackLink = res.data.item.external_urls.spotify;
     let artists = trackInfo.artists.map(artist => artist.name).join(', ');
-    client.say(channel, `${artists} - ${trackName}`);
+    client.say(channel, `▶️ ${artists} - ${trackName} -> ${trackLink}`);
 }
 
 let handleSongRequest = async (channel, username, message) => {
