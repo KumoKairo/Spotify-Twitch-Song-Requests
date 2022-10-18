@@ -390,7 +390,7 @@ function getSpotifyHeaders() {
 let app = express();
 
 app.get('/login', (req, res) => {
-    const scope = 'user-modify-playback-state user-read-currently-playing';
+    const scope = 'user-modify-playback-state user-read-playback-state user-read-currently-playing';
     const authParams = new URLSearchParams();
     authParams.append('response_type', 'code');
     authParams.append('client_id', client_id);
