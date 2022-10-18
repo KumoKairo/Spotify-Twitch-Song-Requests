@@ -11,6 +11,7 @@ const open = require('open');
 const Twitch = require('./twitchcontroller');
 
 const pack = require('./package.json');
+const { username } = require('tmi.js/lib/utils');
 
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
@@ -40,6 +41,7 @@ const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
 const cooldownDuration = chatbotConfig.cooldown_duration * 1000;
 const usersOnCooldown = new Set();
+const usersHaveSkipped = new Set();
 
 // CHECK FOR UPDATES
 axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
@@ -98,6 +100,9 @@ client.on('message', async (channel, tags, message, self) => {
     }
 	else if (chatbotConfig.use_queue_command && messageToLower === '!queue') {
         await handleQueue(channel);
+    }
+    else if (messageToLower === '!voteskip' ) {
+        await handleVoteSkip(channel, tags[displayNameTag]);
     }
 });
 
@@ -181,6 +186,21 @@ let handleQueue = async (channel) => {
         } else {
             client.say(chatbotConfig.channel_name, `Seems like no music is playing right now`);
         }
+    }
+}
+
+let handleVoteSkip = async (channel, username) => {
+    if(!usersHaveSkipped.has(username)) {
+        usersHaveSkipped.add(username);
+        console.log(`${username} voted to skip the song`);
+        client.say(channel, `${username} voted to skip the song`);
+    }
+    if (usersHaveSkipped.size >= chatbotConfig.required_vote_skip) {
+        usersHaveSkipped.clear();
+        console.log(`Chat successfully skipped the song`);
+        client.say(channel, 'chat voted to skip the song');
+        let spotifyHeaders = getSpotifyHeaders();
+        res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders }); 
     }
 }
 
