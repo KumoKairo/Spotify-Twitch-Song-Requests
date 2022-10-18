@@ -197,8 +197,8 @@ let handleVoteSkip = async (channel, username) => {
     }
     if (usersHaveSkipped.size >= chatbotConfig.required_vote_skip) {
         usersHaveSkipped.clear();
-        console.log(`Chat has skipped ${currentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
-        client.say(channel, `Chat has skipped ${currentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
+        console.log(`Chat has skipped ${await currentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
+        client.say(channel, `Chat has skipped ${await currentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
         let spotifyHeaders = getSpotifyHeaders();
         res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders }); 
     }
@@ -229,7 +229,7 @@ let currentTrackName = async (channel) => {
     let trackId = res.data.item.id;
     let trackInfo = await getTrackInfo(trackId);
     let trackName = trackInfo.name;
-    return `${trackName}`;
+    return trackName;
 }
 
 let printQueue = async (channel) => {
