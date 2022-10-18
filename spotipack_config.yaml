@@ -21,7 +21,9 @@ use_song_command: TRUE # add !song command that displays currently playing song.
 use_queue_command: TRUE # add !queue command that displays songs currently in the queue. FALSE if you don't want it
 queue_display_depth: 5 # limits the amount of songs that are displayed when a user types !queue. - default is 5
 minimum_requred_bits: 1 # works if usage mode is set to "bits"
-required_vote_skip: 2 # sets threshold for number of votes required to skip a song.
+allow_vote_skip: TRUE # allow users without super-privileges to vote on skipping the song. FALSE if you don't want it
+required_vote_skip: 2 # sets required number of votes to skip a song, if allow_vote_skip is 
+voteskip_timeout: 17 # waits for a number seconds between each user skipping, or cancels the skipvote otherwise. Default is a 17 because 2 people couldn't agree what was too long or too short.
 
 ## SKIP STUFF ##
 skip_alias: "!skip" # alias for the "Skip Song" command
