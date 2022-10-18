@@ -209,18 +209,19 @@ let printQueue = async (channel) => {
     if (!res.data?.currently_playing || !res.data?.queue){
         client.say(channel, 'Nothing in the queue.')
     }
-	
-	let songIndex = 1;
-	let concatenatedQueue = '';
+	else {
+		let songIndex = 1;
+		let concatenatedQueue = '';
 
-    res.data.queue?.forEach((qItem) => {
-        let trackName = qItem.name;
-        let artists = qItem.artists.map(artist => artist.name).join(', '); 
-		concatenatedQueue = concatenatedQueue.concat(concatenatedQueue, ' ${songIndex}) ${artists} - ${trackName}');
-		songIndex++;
-    })
-	
-	client.say(channel, `▶️ Current queue:${concatenatedQueue}`);
+		res.data.queue?.forEach((qItem) => {
+			let trackName = qItem.name;
+			let artists = qItem.artists.map(artist => artist.name).join(', '); 
+            concatenatedQueue = concatenatedQueue.concat(concatenatedQueue, ` ${songIndex}) ${artists} - ${trackName}`);
+			songIndex++;
+		})
+		
+		client.say(channel, `▶️ Current queue:${concatenatedQueue}`);
+	}	
 }
 
 let handleSongRequest = async (channel, username, message) => {
