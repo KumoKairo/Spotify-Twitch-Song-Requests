@@ -211,12 +211,12 @@ let printQueue = async (channel) => {
     }
 	else {
 		let songIndex = 1;
-		let concatenatedQueue = '';
+		let concatQueue = '';
         let queueDepthIndex = chatbotConfig.queue_display_depth;
 
         res.data.queue?.every(qItem => {
             let trackName = qItem.name;
-            let artists = qItem.artists[0];
+            let artists = qItem.artists[0].name;
             concatQueue += `• ${songIndex}) ${artists} - ${trackName} `;
 
             queueDepthIndex--;
@@ -232,7 +232,7 @@ let printQueue = async (channel) => {
             }
         })
 		
-        client.say(channel, `▶️ Next ${chatbotConfig.queue_display_depth} songs: ${concatenatedQueue}`);
+        client.say(channel, `▶️ Next ${chatbotConfig.queue_display_depth} songs: ${concatQueue}`);
 	}	
 }
 
