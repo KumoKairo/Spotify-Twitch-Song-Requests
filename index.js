@@ -96,6 +96,9 @@ client.on('message', async (channel, tags, message, self) => {
     else if (chatbotConfig.use_song_command && messageToLower === '!song') {
         await handleTrackName(channel);
     }
+	else if (chatbotConfig.use_queue_command && messageToLower === '!queue') {
+        await handleQueue(channel);
+    }
 });
 
 client.on('redeem', async (channel, username, rewardType, tags, message) => {
@@ -167,6 +170,20 @@ let handleTrackName = async (channel) => {
     }
 }
 
+let handleQueue = async (channel) => {
+    try {
+        await printQueue(channel);
+    } catch (error) {
+        // Token expired
+        if(error?.response?.data?.error?.status === 401) {
+            await refreshAccessToken();
+            await printQueue(channel);
+        } else {
+            client.say(chatbotConfig.channel_name, 'Seems like no music is playing right now');
+        }
+    }
+}
+
 let printTrackName = async (channel) => {
     let spotifyHeaders = getSpotifyHeaders();
 
@@ -180,6 +197,30 @@ let printTrackName = async (channel) => {
     let trackLink = res.data.item.external_urls.spotify;
     let artists = trackInfo.artists.map(artist => artist.name).join(', ');
     client.say(channel, `▶️ ${artists} - ${trackName} -> ${trackLink}`);
+}
+
+let printQueue = async (channel) => {
+    let spotifyHeaders = getSpotifyHeaders();
+
+    let res = await axios.get('https://api.spotify.com/v1/me/player/queue', {
+        headers: spotifyHeaders
+    });
+
+    if (!res.data?.currently_playing || !res.data?.queue){
+        client.say(channel, 'Nothing in the queue.')
+    }
+	
+	let songIndex = 1;
+	let concatenatedQueue = '';
+
+    res.data.queue?.forEach((qItem) => {
+        let trackName = qItem.name;
+        let artists = qItem.artists.map(artist => artist.name).join(', '); 
+		concatenatedQueue = concatenatedQueue.concat(concatenatedQueue, ' ${songIndex}) ${artists} - ${trackName}');
+		songIndex++;
+    })
+	
+	client.say(channel, `▶️ Current queue:${concatenatedQueue}`);
 }
 
 let handleSongRequest = async (channel, username, message) => {
