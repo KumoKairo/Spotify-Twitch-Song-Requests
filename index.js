@@ -179,7 +179,7 @@ let handleQueue = async (channel) => {
             await refreshAccessToken();
             await printQueue(channel);
         } else {
-            client.say(chatbotConfig.channel_name, `Seems like no music is playing right now (${error?.response?.data?.error?.status})`);
+            client.say(chatbotConfig.channel_name, `Seems like no music is playing right now`);
         }
     }
 }
