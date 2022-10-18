@@ -224,7 +224,7 @@ let printQueue = async (channel) => {
 
             // using 'every' to loop instead of 'foreach' allows us to break out of a loop like this
             // so we can keep it 
-            if (queueDepthIndex <= 1) {
+            if (queueDepthIndex <= 0) {
                 return false;
             }
             else {
