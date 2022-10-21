@@ -100,9 +100,9 @@ client.on('message', async (channel, tags, message, self) => {
     } else if (chatbotConfig.allow_volume_set && messageToLower.split(" ")[0] == '!volume') {
         let args = messageToLower.split(" ")[1];
             if (!args) {
-                await handleGetVolume(channel, tags[displayNameTag]);
+                await handleGetVolume(channel, tags);
             } else {
-                await handleSetVolume(channel, tags[displayNameTag], args);
+                await handleSetVolume(channel, tags, args);
             }
     } 
     else if (messageToLower === chatbotConfig.skip_alias) {
@@ -453,7 +453,7 @@ function getSpotifyHeaders() {
 let app = express();
 
 app.get('/login', (req, res) => {
-    const scope = 'user-modify-playback-state user-read-playback-state user-read-currently-playing user-modify-playback-state user-read-playback-state';
+    const scope = 'user-modify-playback-state user-read-playback-state user-read-currently-playing';
     const authParams = new URLSearchParams();
     authParams.append('response_type', 'code');
     authParams.append('client_id', client_id);
@@ -587,7 +587,7 @@ async function handleSkipSong(channel, tags) {
             client.say(channel, `${tags[displayNameTag]} skipped ${await getCurrentTrackName(channel)}!`);
             console.log(`${tags[displayNameTag]} skipped ${await getCurrentTrackName(channel)}!`);
             let spotifyHeaders = getSpotifyHeaders();
-            res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
+            res = await axios.post('https://api.spotify.com/v1/me/player/next', null, { headers: spotifyHeaders });
         }
     } catch (error) {
         console.log(error);
@@ -603,7 +603,7 @@ async function handleGetVolume(channel, tags) {
 
         if(eligible) {
             let spotifyHeaders = getSpotifyHeaders();
-            res = await axios.get('https://api.spotify.com/v1/me/player', {}, { headers: spotifyHeaders });
+            res = await axios.get('https://api.spotify.com/v1/me/player', { headers: spotifyHeaders });
 
             let currVolume = res.data.device.volume_percent;
             console.log(`${tags[displayNameTag]}, the current volume is ${currVolume.toString()}!`);
@@ -635,8 +635,8 @@ async function handleSetVolume(channel, tags, arg) {
             }
 
             let spotifyHeaders = getSpotifyHeaders();
-
-            res = await axios.post('https://api.spotify.com/v1/me/player/volume', {number}, { headers: spotifyHeaders });
+            //courtesy of greav
+            res = await axios.put('https://api.spotify.com/v1/me/player/volume', null, { headers: spotifyHeaders, params:{volume_percent: number} });
 
             console.log(`${tags[displayNameTag]} has set the current volume to ${number.toString()}!`);
             client.say(channel, `${tags[displayNameTag]} has set the current volume to ${number.toString()}!`);
