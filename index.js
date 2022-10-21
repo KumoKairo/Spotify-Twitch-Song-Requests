@@ -44,6 +44,9 @@ const cooldownDuration = chatbotConfig.cooldown_duration * 1000;
 const usersOnCooldown = new Set();
 const usersHaveSkipped = new Set();
 
+const volMin = 0;
+const volMax = 100;
+const clamp = (num, volMin, volMax) => Math.min(Math.max(num, volMin), volMax);
 
 // CHECK FOR UPDATES
 axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
@@ -94,7 +97,15 @@ client.on('message', async (channel, tags, message, self) => {
             } else {
                 await handleSongRequest(channel, tags[displayNameTag], message, true);
             }
-    } else if (messageToLower === chatbotConfig.skip_alias) {
+    } else if (chatbotConfig.allow_volume_set && messageToLower.split(" ")[0] == '!volume') {
+        let args = messageToLower.split(" ")[1];
+            if (!args) {
+                await handleGetVolume(channel, tags[displayNameTag]);
+            } else {
+                await handleSetVolume(channel, tags[displayNameTag], args);
+            }
+    } 
+    else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
     }
     else if (chatbotConfig.use_song_command && messageToLower === '!song') {
@@ -203,8 +214,8 @@ let handleVoteSkip = async (channel, username) => {
     if (usersHaveSkipped.size >= chatbotConfig.required_vote_skip) {
         usersHaveSkipped.clear();
         clearTimeout(voteskipTimeout);
-        console.log(`Chat has skipped ${await currentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
-        client.say(channel, `Chat has skipped ${await currentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
+        console.log(`Chat has skipped ${await getCurrentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
+        client.say(channel, `Chat has skipped ${await getCurrentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
         let spotifyHeaders = getSpotifyHeaders();
         res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders }); 
     }
@@ -225,7 +236,7 @@ let printTrackName = async (channel) => {
     client.say(channel, `▶️ ${artists} - ${trackName} -> ${trackLink}`);
 }
 
-let currentTrackName = async (channel) => {
+let getCurrentTrackName = async (channel) => {
     let spotifyHeaders = getSpotifyHeaders();
 
     let res = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
@@ -442,7 +453,7 @@ function getSpotifyHeaders() {
 let app = express();
 
 app.get('/login', (req, res) => {
-    const scope = 'user-modify-playback-state user-read-playback-state user-read-currently-playing';
+    const scope = 'user-modify-playback-state user-read-playback-state user-read-currently-playing user-modify-playback-state user-read-playback-state';
     const authParams = new URLSearchParams();
     authParams.append('response_type', 'code');
     authParams.append('client_id', client_id);
@@ -573,12 +584,66 @@ async function handleSkipSong(channel, tags) {
         let eligible = isUserEligible(channel, tags, chatbotConfig.skip_user_level);
 
         if(eligible) {
-            console.log(`${tags[displayNameTag]} skipped the song`);
+            client.say(channel, `${tags[displayNameTag]} skipped ${await getCurrentTrackName(channel)}!`);
+            console.log(`${tags[displayNameTag]} skipped ${await getCurrentTrackName(channel)}!`);
             let spotifyHeaders = getSpotifyHeaders();
             res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
         }
     } catch (error) {
         console.log(error);
+        // Skipping the error for now, let the users spam it
+        // 403 error of not having premium is the same as with the request,
+        // ^ TODO get one place to handle common Spotify error codes
+    }
+}
+
+async function handleGetVolume(channel, tags) {
+    try {
+        let eligible = isUserEligible(channel, tags, chatbotConfig.volume_set_level);
+
+        if(eligible) {
+            let spotifyHeaders = getSpotifyHeaders();
+            res = await axios.get('https://api.spotify.com/v1/me/player', {}, { headers: spotifyHeaders });
+
+            let currVolume = res.data.device.volume_percent;
+            console.log(`${tags[displayNameTag]}, the current volume is ${currVolume.toString()}!`);
+            client.say(channel, `${tags[displayNameTag]}, the current volume is ${currVolume.toString()}!`);
+        }
+    } catch (error) {
+        console.log(error);
+        // Skipping the error for now, let the users spam it
+        // 403 error of not having premium is the same as with the request,
+        // ^ TODO get one place to handle common Spotify error codes
+    }
+}
+
+async function handleSetVolume(channel, tags, arg) {
+    
+    try {
+        let eligible = isUserEligible(channel, tags, chatbotConfig.volume_set_level);
+
+        if(eligible) {
+
+            let number = 0;
+            try {
+                number = Number(arg);
+                number = clamp(number, volMin, volMax);
+            } catch (error) {
+                console.log(error);
+                client.say(channel, `${tags[displayNameTag]}, a number between 0 and 100 is required.`);
+                return;
+            }
+
+            let spotifyHeaders = getSpotifyHeaders();
+
+            res = await axios.post('https://api.spotify.com/v1/me/player/volume', {number}, { headers: spotifyHeaders });
+
+            console.log(`${tags[displayNameTag]} has set the current volume to ${number.toString()}!`);
+            client.say(channel, `${tags[displayNameTag]} has set the current volume to ${number.toString()}!`);
+        }
+    } catch (error) {
+        console.log(error);
+        client.say(channel, `There was a problem setting the volume`);
         // Skipping the error for now, let the users spam it
         // 403 error of not having premium is the same as with the request,
         // ^ TODO get one place to handle common Spotify error codes
