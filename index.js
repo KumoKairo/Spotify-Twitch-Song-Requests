@@ -11,7 +11,6 @@ const open = require('open');
 const Twitch = require('./twitchcontroller');
 
 const pack = require('./package.json');
-const { username } = require('tmi.js/lib/utils');
 
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';

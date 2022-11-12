@@ -123,16 +123,3 @@ bins
 *.zip
 
 .vscode
-node/CHANGELOG.md
-node/corepack
-node/corepack.cmd
-node/install_tools.bat
-node/LICENSE
-node/node_etw_provider.man
-node/node.exe
-node/nodevars.bat
-node/npm
-node/npm.cmd
-node/npx
-node/npx.cmd
-node/README.md
