@@ -397,7 +397,7 @@ let getTrackInfo = async (trackId) => {
     return trackInfo.data;
 }
 
-let addSongToQueue = async (songId, channel, callerUsername) => {
+let addSongToQueue = async (songId, channel, callerUsername, tags) => {
     let spotifyHeaders = getSpotifyHeaders();
 
     let trackInfo = await getTrackInfo(songId);
@@ -408,7 +408,9 @@ let addSongToQueue = async (songId, channel, callerUsername) => {
     let uri = trackInfo.uri;
 
     let duration = trackInfo.duration_ms / 1000;
-    if (duration > chatbotConfig.max_duration) {
+    let eligible = isUserEligible(channel, tags, chatbotConfig.ignore_max_length);
+
+    if (duration > chatbotConfig.max_duration && !eligible) {
         client.say(channel, `${trackName} is too long. The max duration is ${chatbotConfig.max_duration} seconds`);
         return;
     }

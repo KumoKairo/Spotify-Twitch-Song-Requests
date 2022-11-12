@@ -33,6 +33,7 @@ voteskip_timeout: 17 # waits for a number seconds between each user skipping, or
 ## MISC STUFF ##
 allow_volume_set: TRUE # allow users with special privileges (set below) to set the volume remotely
 volume_set_level: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
+ignore_max_length: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
 
 ## COMMAND COOLDOWN ##
 use_cooldown: FALSE # TRUE or FALSE to enable or disable command cooldown
