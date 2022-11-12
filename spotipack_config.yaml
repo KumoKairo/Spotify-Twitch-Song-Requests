@@ -3,7 +3,7 @@ user_name: "REPLACE_THIS"                # Name of the user you are connecting a
 channel_name: "REPLACE_THIS"             # Name of the channel this bot is working on (can be same as the user name, if the streamer wants to post messages as himself)
 max_duration: 300 # The max duration of an allowed song in seconds
 usage_type: "command" # can be either "channel_points", "command" or "bits"
-minimum_requred_bits: 1 # works if usage mode is set to "bits"
+minimum_required_bits: 1 # works if usage mode is set to "bits"
 logs: TRUE
 
 ## MESSAGES ##

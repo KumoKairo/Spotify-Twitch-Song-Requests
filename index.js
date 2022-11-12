@@ -80,8 +80,8 @@ console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel '${chat
 client.on('message', async (channel, tags, message, self) => {
     if(self) return;
     let messageToLower = message.toLowerCase();
-    
-    if(chatbotConfig.usage_type === commandUsageType 
+
+    if(chatbotConfig.usage_type === commandUsageType
         && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])
         && isUserEligible(channel, tags, chatbotConfig.command_user_level)) {
         let args = messageToLower.split(" ")[1];
@@ -120,7 +120,7 @@ client.on('cheer', async (channel, state, message) => {
 
     if(chatbotConfig.usage_type === bitsUsageType
             && message.includes(spotifyShareUrlMaker)
-            && bits >= chatbotConfig.minimum_requred_bits) {
+            && bits >= chatbotConfig.minimum_required_bits) {
         let username = state[displayNameTag];
 
         let result = await handleSongRequest(channel, username, message, true);
@@ -186,7 +186,7 @@ let handleSongRequest = async (channel, username, message) => {
     if(!validatedSongId) {
         client.say(channel, `${username}, I was unable to find anything.`);
         return false;
-    }  else if (chatbotConfig.use_cooldown && !usersOnCooldown.has(username)) {         
+    }  else if (chatbotConfig.use_cooldown && !usersOnCooldown.has(username)) {
         usersOnCooldown.add(username);
         setTimeout(() => {
             usersOnCooldown.delete(username)
@@ -443,12 +443,12 @@ function log(message) {
 }
 
 function isUserEligible(channel, tags, rolesArray) {
-    // If the user is the streamer 
+    // If the user is the streamer
     let userEligible = tags.badges?.broadcaster === '1';
-    
+
     // Or if it's a mod
     userEligible |= rolesArray.includes(mod) && tags.mod;
-    
+
     // Or if it's a VIP
     userEligible |= rolesArray.includes(vip) && tags.badges?.vip === '1';
 
