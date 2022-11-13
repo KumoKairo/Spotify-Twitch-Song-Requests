@@ -17,10 +17,14 @@ song_not_found: "Sorry, I was unable to find that song on Spotify."             
 automatic_refunds: FALSE # enable for automatic refunds. requires additional scopes!
 use_song_command: TRUE # adds !song command
 use_cooldown: FALSE # Adds a cooldown for the song request command. See settings under COMMAND COOLDOWN.
+use_queue_command: TRUE # add !queue command that displays songs currently in the queue. See settings under QUEUE.
+allow_volume_set: TRUE # allow users with special privileges (set below) to set the volume remotely. See settings under VOLUME.
+allow_vote_skip: TRUE # allow users without special privileges to vote on skipping the song. See settings under VOTESKIP.
 
 ## PERMISSIONS ##
 command_user_level: ["everyone"] # ["streamer", "mod", "vip", "sub", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
 skip_user_level: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
+ignore_max_length: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
 
 ## REWARD / REDEEM SETTINGS ##
 custom_reward_id: "xxx-xxx-xxx-xxx"  # reward ID for the Channel Points redemption. Required to be set if usage_type is channel_points
@@ -31,7 +35,17 @@ custom_reward_cost: 500   # reward cost, this will be used if automatic_refunds 
 command_alias: ["!songrequest", "!sr"] # ["a", "b", ...] all valid aliases to request songs if usage mode is "command"
 skip_alias: "!skip" # alias for the "Skip Song" command
 
-## COMMAND COOLDOWN #
+## VOTESKIP ##
+required_vote_skip: 2 # sets required number of votes to skip a song, if allow_vote_skip is TRUE
+voteskip_timeout: 17 # waits for a number seconds between each user skipping, or cancels the skipvote otherwise. Default is a 17 because 2 people couldn't agree what was too long or too short.
+
+## QUEUE ##
+queue_display_depth: 5 # limits the amount of songs that are displayed when a user types !queue. - default is 5
+
+## VOLUME ##
+volume_set_level: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
+
+## COMMAND COOLDOWN ##
 cooldown_duration: 60 # How long a user has to wait in between song requests in seconds
 
 ## BLOCKED TRACKS ##
