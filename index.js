@@ -14,6 +14,7 @@ const pack = require('./package.json');
 
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
+let voteskipTimeout;
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -40,6 +41,11 @@ const chatbotConfig = setupYamlConfigs();
 const expressPort = chatbotConfig.express_port;
 const cooldownDuration = chatbotConfig.cooldown_duration * 1000;
 const usersOnCooldown = new Set();
+const usersHaveSkipped = new Set();
+
+const volMin = 0;
+const volMax = 100;
+const clamp = (num, volMin, volMax) => Math.min(Math.max(num, volMin), volMax);
 
 // CHECK FOR UPDATES
 axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/releases/latest")
@@ -90,11 +96,25 @@ client.on('message', async (channel, tags, message, self) => {
             } else {
                 await handleSongRequest(channel, tags[displayNameTag], message, true);
             }
-    } else if (messageToLower === chatbotConfig.skip_alias) {
+    } else if (chatbotConfig.allow_volume_set && messageToLower.split(" ")[0] == '!volume') {
+        let args = messageToLower.split(" ")[1];
+            if (!args) {
+                await handleGetVolume(channel, tags);
+            } else {
+                await handleSetVolume(channel, tags, args);
+            }
+    } 
+    else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
     }
     else if (chatbotConfig.use_song_command && messageToLower === '!song') {
         await handleTrackName(channel);
+    }
+	else if (chatbotConfig.use_queue_command && messageToLower === '!queue') {
+        await handleQueue(channel);
+    }
+    else if (chatbotConfig.allow_vote_skip && messageToLower === '!voteskip' ) {
+        await handleVoteSkip(channel, tags[displayNameTag]);
     }
 });
 
@@ -167,6 +187,39 @@ let handleTrackName = async (channel) => {
     }
 }
 
+let handleQueue = async (channel) => {
+    try {
+        await printQueue(channel);
+    } catch (error) {
+        // Token expired
+        if(error?.response?.data?.error?.status === 401) {
+            await refreshAccessToken();
+            await printQueue(channel);
+        } else {
+            client.say(chatbotConfig.channel_name, `Seems like no music is playing right now`);
+        }
+    }
+}
+
+let handleVoteSkip = async (channel, username) => {
+
+    if (!usersHaveSkipped.has(username)) {
+        startOrProgressVoteskip(channel);
+
+        usersHaveSkipped.add(username);
+        console.log(`${username} voted to skip the current song (${usersHaveSkipped.size}/${chatbotConfig.required_vote_skip})!`);
+        client.say(channel, `${username} voted to skip the current song (${usersHaveSkipped.size}/${chatbotConfig.required_vote_skip})!`);
+    }
+    if (usersHaveSkipped.size >= chatbotConfig.required_vote_skip) {
+        usersHaveSkipped.clear();
+        clearTimeout(voteskipTimeout);
+        console.log(`Chat has skipped ${await getCurrentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
+        client.say(channel, `Chat has skipped ${await getCurrentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
+        let spotifyHeaders = getSpotifyHeaders();
+        res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders }); 
+    }
+}
+
 let printTrackName = async (channel) => {
     let spotifyHeaders = getSpotifyHeaders();
 
@@ -177,8 +230,59 @@ let printTrackName = async (channel) => {
     let trackId = res.data.item.id;
     let trackInfo = await getTrackInfo(trackId);
     let trackName = trackInfo.name;
+    let trackLink = res.data.item.external_urls.spotify;
     let artists = trackInfo.artists.map(artist => artist.name).join(', ');
-    client.say(channel, `${artists} - ${trackName}`);
+    client.say(channel, `▶️ ${artists} - ${trackName} -> ${trackLink}`);
+}
+
+let getCurrentTrackName = async (channel) => {
+    let spotifyHeaders = getSpotifyHeaders();
+
+    let res = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', {
+        headers: spotifyHeaders
+    });
+
+    let trackId = res.data.item.id;
+    let trackInfo = await getTrackInfo(trackId);
+    let trackName = trackInfo.name;
+    return trackName;
+}
+
+let printQueue = async (channel) => {
+    let spotifyHeaders = getSpotifyHeaders();
+
+    let res = await axios.get('https://api.spotify.com/v1/me/player/queue', {
+        headers: spotifyHeaders
+    });
+
+    if (!res.data?.currently_playing || !res.data?.queue){
+        client.say(channel, 'Nothing in the queue.')
+    }
+	else {
+		let songIndex = 1;
+		let concatQueue = '';
+        let queueDepthIndex = chatbotConfig.queue_display_depth;
+
+        res.data.queue?.every(qItem => {
+            let trackName = qItem.name;
+            let artists = qItem.artists[0].name;
+            concatQueue += `• ${songIndex}) ${artists} - ${trackName} `;
+
+            queueDepthIndex--;
+            songIndex++;
+
+            // using 'every' to loop instead of 'foreach' allows us to break out of a loop like this
+            // so we can keep it 
+            if (queueDepthIndex <= 0) {
+                return false;
+            }
+            else {
+                return true;
+            }
+        })
+		
+        client.say(channel, `▶️ Next ${chatbotConfig.queue_display_depth} songs: ${concatQueue}`);
+	}	
 }
 
 let handleSongRequest = async (channel, username, message) => {
@@ -292,7 +396,7 @@ let getTrackInfo = async (trackId) => {
     return trackInfo.data;
 }
 
-let addSongToQueue = async (songId, channel, callerUsername) => {
+let addSongToQueue = async (songId, channel, callerUsername, tags) => {
     let spotifyHeaders = getSpotifyHeaders();
 
     let trackInfo = await getTrackInfo(songId);
@@ -303,7 +407,9 @@ let addSongToQueue = async (songId, channel, callerUsername) => {
     let uri = trackInfo.uri;
 
     let duration = trackInfo.duration_ms / 1000;
-    if (duration > chatbotConfig.max_duration) {
+    let eligible = isUserEligible(channel, tags, chatbotConfig.ignore_max_length);
+
+    if (duration > chatbotConfig.max_duration && !eligible) {
         client.say(channel, `${trackName} is too long. The max duration is ${chatbotConfig.max_duration} seconds`);
         return;
     }
@@ -348,7 +454,7 @@ function getSpotifyHeaders() {
 let app = express();
 
 app.get('/login', (req, res) => {
-    const scope = 'user-modify-playback-state user-read-currently-playing';
+    const scope = 'user-modify-playback-state user-read-playback-state user-read-currently-playing';
     const authParams = new URLSearchParams();
     authParams.append('response_type', 'code');
     authParams.append('client_id', client_id);
@@ -402,6 +508,19 @@ function setupYamlConfigs () {
     fileConfig = checkIfSetupIsCorrect(fileConfig);
 
     return fileConfig;
+}
+
+function startOrProgressVoteskip(channel) {
+    if (usersHaveSkipped.size > 0) {
+        clearTimeout(voteskipTimeout);
+    }
+
+    voteskipTimeout = setTimeout(function() {resetVoteskip(channel)}, chatbotConfig.voteskip_timeout * 1000);
+}
+
+function resetVoteskip(channel) {
+    client.say(channel, `Voteskip has timed out... No song will be skipped at this time! catJAM`);
+    usersHaveSkipped.clear();
 }
 
 function checkIfSetupIsCorrect(fileConfig) {
@@ -466,12 +585,66 @@ async function handleSkipSong(channel, tags) {
         let eligible = isUserEligible(channel, tags, chatbotConfig.skip_user_level);
 
         if(eligible) {
-            console.log(`${tags[displayNameTag]} skipped the song`);
+            client.say(channel, `${tags[displayNameTag]} skipped ${await getCurrentTrackName(channel)}!`);
+            console.log(`${tags[displayNameTag]} skipped ${await getCurrentTrackName(channel)}!`);
             let spotifyHeaders = getSpotifyHeaders();
-            res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
+            res = await axios.post('https://api.spotify.com/v1/me/player/next', null, { headers: spotifyHeaders });
         }
     } catch (error) {
         console.log(error);
+        // Skipping the error for now, let the users spam it
+        // 403 error of not having premium is the same as with the request,
+        // ^ TODO get one place to handle common Spotify error codes
+    }
+}
+
+async function handleGetVolume(channel, tags) {
+    try {
+        let eligible = isUserEligible(channel, tags, chatbotConfig.volume_set_level);
+
+        if(eligible) {
+            let spotifyHeaders = getSpotifyHeaders();
+            res = await axios.get('https://api.spotify.com/v1/me/player', { headers: spotifyHeaders });
+
+            let currVolume = res.data.device.volume_percent;
+            console.log(`${tags[displayNameTag]}, the current volume is ${currVolume.toString()}!`);
+            client.say(channel, `${tags[displayNameTag]}, the current volume is ${currVolume.toString()}!`);
+        }
+    } catch (error) {
+        console.log(error);
+        // Skipping the error for now, let the users spam it
+        // 403 error of not having premium is the same as with the request,
+        // ^ TODO get one place to handle common Spotify error codes
+    }
+}
+
+async function handleSetVolume(channel, tags, arg) {
+    
+    try {
+        let eligible = isUserEligible(channel, tags, chatbotConfig.volume_set_level);
+
+        if(eligible) {
+
+            let number = 0;
+            try {
+                number = Number(arg);
+                number = clamp(number, volMin, volMax);
+            } catch (error) {
+                console.log(error);
+                client.say(channel, `${tags[displayNameTag]}, a number between 0 and 100 is required.`);
+                return;
+            }
+
+            let spotifyHeaders = getSpotifyHeaders();
+            //courtesy of greav
+            res = await axios.put('https://api.spotify.com/v1/me/player/volume', null, { headers: spotifyHeaders, params:{volume_percent: number} });
+
+            console.log(`${tags[displayNameTag]} has set the current volume to ${number.toString()}!`);
+            client.say(channel, `${tags[displayNameTag]} has set the current volume to ${number.toString()}!`);
+        }
+    } catch (error) {
+        console.log(error);
+        client.say(channel, `There was a problem setting the volume`);
         // Skipping the error for now, let the users spam it
         // 403 error of not having premium is the same as with the request,
         // ^ TODO get one place to handle common Spotify error codes
