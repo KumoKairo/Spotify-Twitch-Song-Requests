@@ -94,7 +94,7 @@ client.on('message', async (channel, tags, message, self) => {
             if (!args) {
                 client.say(chatbotConfig.channel_name, `${tags[displayNameTag]}, usage: !songrequest song-link (Spotify -> Share -> Copy Song Link)`);
             } else {
-                await handleSongRequest(channel, tags[displayNameTag], message, true);
+                await handleSongRequest(channel, tags[displayNameTag], message, tags, true);
             }
     } else if (chatbotConfig.allow_volume_set && messageToLower.split(" ")[0] == '!volume') {
         let args = messageToLower.split(" ")[1];
@@ -285,7 +285,7 @@ let printQueue = async (channel) => {
 	}	
 }
 
-let handleSongRequest = async (channel, username, message) => {
+let handleSongRequest = async (channel, username, message, tags) => {
     let validatedSongId = await validateSongRequest(message, channel);
     if(!validatedSongId) {
         client.say(channel, `${username}, I was unable to find anything.`);
@@ -300,17 +300,17 @@ let handleSongRequest = async (channel, username, message) => {
         return false;
     }
 
-    return await addValidatedSongToQueue(validatedSongId, channel, username);
+    return await addValidatedSongToQueue(validatedSongId, channel, username, tags);
 }
 
-let addValidatedSongToQueue = async (songId, channel, callerUsername) => {
+let addValidatedSongToQueue = async (songId, channel, callerUsername, tags) => {
     try {
-        await addSongToQueue(songId, channel, callerUsername);
+        await addSongToQueue(songId, channel, callerUsername, tags);
     } catch (error) {
         // Token expired
         if(error?.response?.data?.error?.status === 401) {
             await refreshAccessToken();
-            await addSongToQueue(songId, channel, callerUsername);
+            await addSongToQueue(songId, channel, callerUsername, tags);
         }
         // No action was received from the Spotify user recently, need to print a message to make them poke Spotify
         if(error?.response?.data?.error?.status === 404) {
