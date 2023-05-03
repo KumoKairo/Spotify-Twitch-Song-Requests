@@ -34,7 +34,9 @@ const vip = 'vip';
 const sub = 'sub';
 const everyone = 'everyone';
 
-const spotifyShareUrlMaker = 'https://open.spotify.com/track/';
+const spotifyShareUrlBase = 'https://open.spotify.com';
+const spotifyShareUrlMaker = `${spotifyShareUrlBase}/track/`;
+const spotifyShareUrlMakerRegex = `${spotifyShareUrlBase}/(?:.*)?track/[^\\s]+`;
 const spotifyShareUriMaker = 'spotify:track:';
 
 const chatbotConfig = setupYamlConfigs();
@@ -139,7 +141,7 @@ client.on('cheer', async (channel, state, message) => {
     let bits = isNaN(bitsParse) ? 0 : bitsParse;
 
     if(chatbotConfig.usage_type === bitsUsageType
-            && message.includes(spotifyShareUrlMaker)
+            && message.includes(spotifyShareUrlBase)
             && bits >= chatbotConfig.minimum_requred_bits) {
         let username = state[displayNameTag];
 
@@ -153,7 +155,7 @@ client.on('cheer', async (channel, state, message) => {
 });
 
 let parseActualSongUrlFromBigMessage = (message) => {
-    const regex = new RegExp(`${spotifyShareUrlMaker}[^\\s]+`);
+    const regex = new RegExp(spotifyShareUrlMakerRegex);
     let match = message.match(regex);
     if (match !== null) {
         return match[0];
@@ -322,7 +324,7 @@ let addValidatedSongToQueue = async (songId, channel, callerUsername, tags) => {
             return false;
         }
         if(error?.response?.status === 403) {
-            client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium OSFrog`);
+            client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium`);
             return false;
         }
         else {
@@ -359,7 +361,6 @@ let searchTrackID = async (searchString) => {
 
 let validateSongRequest = async (message, channel) => {
     // If it contains a link, just use it as is
-
     if (parseActualSongUrlFromBigMessage(message)) {
         return await getTrackId(parseActualSongUrlFromBigMessage(message));
     } else if (parseActualSongUriFromBigMessage(message)) {
