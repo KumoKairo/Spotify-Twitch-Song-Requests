@@ -88,8 +88,8 @@ console.log(`Logged in as ${chatbotConfig.user_name}. Working on channel '${chat
 client.on('message', async (channel, tags, message, self) => {
     if(self) return;
     let messageToLower = message.toLowerCase();
-    
-    if(chatbotConfig.usage_type === commandUsageType 
+
+    if(chatbotConfig.usage_type === commandUsageType
         && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])
         && isUserEligible(channel, tags, chatbotConfig.command_user_level)) {
         let args = messageToLower.split(" ")[1];
@@ -105,7 +105,7 @@ client.on('message', async (channel, tags, message, self) => {
             } else {
                 await handleSetVolume(channel, tags, args);
             }
-    } 
+    }
     else if (messageToLower === chatbotConfig.skip_alias) {
         await handleSkipSong(channel, tags);
     }
@@ -218,7 +218,7 @@ let handleVoteSkip = async (channel, username) => {
         console.log(`Chat has skipped ${await getCurrentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
         client.say(channel, `Chat has skipped ${await getCurrentTrackName(channel)} (${chatbotConfig.required_vote_skip}/${chatbotConfig.required_vote_skip})!`);
         let spotifyHeaders = getSpotifyHeaders();
-        res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders }); 
+        res = await axios.post('https://api.spotify.com/v1/me/player/next', {}, { headers: spotifyHeaders });
     }
 }
 
@@ -274,7 +274,7 @@ let printQueue = async (channel) => {
             songIndex++;
 
             // using 'every' to loop instead of 'foreach' allows us to break out of a loop like this
-            // so we can keep it 
+            // so we can keep it
             if (queueDepthIndex <= 0) {
                 return false;
             }
@@ -282,17 +282,17 @@ let printQueue = async (channel) => {
                 return true;
             }
         })
-		
+
         client.say(channel, `▶️ Next ${chatbotConfig.queue_display_depth} songs: ${concatQueue}`);
-	}	
+	}
 }
 
 let handleSongRequest = async (channel, username, message, tags) => {
     let validatedSongId = await validateSongRequest(message, channel);
     if(!validatedSongId) {
-        client.say(channel, `${username}, I was unable to find anything.`);
+        client.say(channel, chatbotConfig.song_not_found);
         return false;
-    }  else if (chatbotConfig.use_cooldown && !usersOnCooldown.has(username)) {         
+    }  else if (chatbotConfig.use_cooldown && !usersOnCooldown.has(username)) {
         usersOnCooldown.add(username);
         setTimeout(() => {
             usersOnCooldown.delete(username)
@@ -320,7 +320,7 @@ let addValidatedSongToQueue = async (songId, channel, callerUsername, tags) => {
             return false;
         }
         if(error?.response?.data?.error?.status === 400) {
-            client.say(channel, `${callerUsername}, I was unable to find anything.`);
+            client.say(channel, chatbotConfig.song_not_found);
             return false;
         }
         if(error?.response?.status === 403) {
@@ -563,12 +563,12 @@ function log(message) {
 }
 
 function isUserEligible(channel, tags, rolesArray) {
-    // If the user is the streamer 
+    // If the user is the streamer
     let userEligible = tags.badges?.broadcaster === '1';
-    
+
     // Or if it's a mod
     userEligible |= rolesArray.includes(mod) && tags.mod;
-    
+
     // Or if it's a VIP
     userEligible |= rolesArray.includes(vip) && tags.badges?.vip === '1';
 
@@ -620,7 +620,7 @@ async function handleGetVolume(channel, tags) {
 }
 
 async function handleSetVolume(channel, tags, arg) {
-    
+
     try {
         let eligible = isUserEligible(channel, tags, chatbotConfig.volume_set_level);
 
