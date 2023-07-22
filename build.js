@@ -1,3 +1,6 @@
+const isWin = process.platform === 'win32';
+const zipCommand = isWin ? '7z a -tzip' : 'zip -r';
+
 const fs = require('fs-extra');
 const execSync = require('child_process').execSync;
 
@@ -12,9 +15,9 @@ try {
     let version = fs.readJsonSync('package.json').version;
     fs.emptyDirSync(distDir);
     fs.copySync('bins/node_win', `${distDir}/node`);
+    fs.copySync('node_modules', `${distDir}/node_modules`);
     filesToCopy.map(copyFile);
-    execSync(`cp -R node_modules ${distDir}/node_modules`);
-    execSync(`zip -r ${version}.zip dist`);
+    execSync(`${zipCommand} ${version}.zip dist`);
 } catch (err) {
     console.error(err);
 }
