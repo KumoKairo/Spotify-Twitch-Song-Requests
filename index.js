@@ -62,8 +62,8 @@ const twitchAPI = new Twitch();
 twitchAPI.init(chatbotConfig, twitchOauthTokenRefunds, twitchClientId).then(() => chatbotConfig.custom_reward_id = twitchAPI.reward_id);
 
 
-if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
-    console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
+if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType && chatbotConfig.usage_type !== bitsUsageType) {
+    console.log(`Usage type is neither '${channelPointsUsageType}', '${commandUsageType}' nor '${bitsUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
 }
 
 
