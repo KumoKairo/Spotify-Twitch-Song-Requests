@@ -61,9 +61,9 @@ axios.get("https://api.github.com/repos/KumoKairo/Spotify-Twitch-Song-Requests/r
 const twitchAPI = new Twitch();
 twitchAPI.init(chatbotConfig, twitchOauthTokenRefunds, twitchClientId).then(() => chatbotConfig.custom_reward_id = twitchAPI.reward_id);
 
-
-if(chatbotConfig.usage_type !== channelPointsUsageType && chatbotConfig.usage_type !== commandUsageType) {
-    console.log(`Usage type is neither '${channelPointsUsageType}' nor '${commandUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
+const validTypes = [channelPointsUsageType, commandUsageType, bitsUsageType]
+if(!validTypes.some(type => chatbotConfig.usage_types.includes(type))) {
+    console.log(`Usage type is neither '${channelPointsUsageType}', '${commandUsageType}' nor '${bitsUsageType}', app will not work. Edit your settings in the 'spotipack_config.yaml' file`);
 }
 
 
@@ -89,7 +89,7 @@ client.on('message', async (channel, tags, message, self) => {
     if(self) return;
     let messageToLower = message.toLowerCase();
 
-    if(chatbotConfig.usage_type === commandUsageType
+    if(chatbotConfig.usage_types.includes(commandUsageType)
         && chatbotConfig.command_alias.includes(messageToLower.split(" ")[0])
         && isUserEligible(channel, tags, chatbotConfig.command_user_level)) {
         let args = messageToLower.split(" ")[1];
@@ -122,7 +122,7 @@ client.on('message', async (channel, tags, message, self) => {
 
 client.on('redeem', async (channel, username, rewardType, tags, message) => {
     log(`Reward ID: ${rewardType}`);
-    if(chatbotConfig.usage_type === channelPointsUsageType && rewardType === chatbotConfig.custom_reward_id) {
+    if(chatbotConfig.usage_types.includes(channelPointsUsageType) && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
         if(!result) {
             // this is duplicated in handleSongRequest().
@@ -140,7 +140,7 @@ client.on('cheer', async (channel, state, message) => {
     let bitsParse = parseInt(state.bits);
     let bits = isNaN(bitsParse) ? 0 : bitsParse;
 
-    if(chatbotConfig.usage_type === bitsUsageType
+    if(chatbotConfig.usage_types.includes(bitsUsageType)
             && message.includes(spotifyShareUrlBase)
             && bits >= chatbotConfig.minimum_requred_bits) {
         let username = state[displayNameTag];
@@ -525,12 +525,12 @@ function resetVoteskip(channel) {
 }
 
 function checkIfSetupIsCorrect(fileConfig) {
-    if (fileConfig.usage_type === channelPointsUsageType && fileConfig.custom_reward_id === defaultRewardId) {
-        console.log(`!ERROR!: You have set 'usage_type' to 'channel_points', but didn't provide a custom Reward ID. Refer to the manual to get the Reward ID value, or change the usage type`);
+    if (fileConfig.usage_types.includes(channelPointsUsageType) && fileConfig.custom_reward_id === defaultRewardId) {
+        console.log(`!ERROR!: You have included 'channel_points' in 'usage_types', but didn't provide a custom Reward ID. Refer to the manual to get the Reward ID value, or change the usage type`);
     }
     // check if we have any aliases if we are using commands
-    if (fileConfig.usage_type === commandUsageType && fileConfig.command_alias.length === 0) {
-        console.log(`!ERROR!: You have set 'usage_type' to 'command', but didn't provide any command aliases. Please add an alias to be able to request songs`);
+    if (fileConfig.usage_types.includes(commandUsageType) && fileConfig.command_alias.length === 0) {
+        console.log(`!ERROR!: You have included 'command' in 'usage_types', but didn't provide any command aliases. Please add an alias to be able to request songs`);
     }
     else {
         for (let i = 0; i < fileConfig.command_alias.length - 1; i++) {
