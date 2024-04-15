@@ -125,8 +125,6 @@ client.on('redeem', async (channel, username, rewardType, tags, message) => {
     if(chatbotConfig.usage_types.includes(channelPointsUsageType) && rewardType === chatbotConfig.custom_reward_id) {
         let result = await handleSongRequest(channel, tags[displayNameTag], message, false);
         if(!result) {
-            // this is duplicated in handleSongRequest().
-            //client.say(chatbotConfig.channel_name, chatbotConfig.song_not_found);
             if (await twitchAPI.refundPoints()) {
                 console.log(`${username} redeemed a song request that couldn't be completed. It was refunded automatically.`);
             } else {
@@ -136,23 +134,28 @@ client.on('redeem', async (channel, username, rewardType, tags, message) => {
     }
 });
 
-client.on('cheer', async (channel, state, message) => {
+// Extracted for easier debugging without spending actual bits (can be called from client.on('message'))
+let onCheer = async (channel, state, message) => {
     let bitsParse = parseInt(state.bits);
     let bits = isNaN(bitsParse) ? 0 : bitsParse;
 
-    if(chatbotConfig.usage_types.includes(bitsUsageType)
-            && message.includes(spotifyShareUrlBase)
-            && bits >= chatbotConfig.minimum_requred_bits) {
-        let username = state[displayNameTag];
-
-        let result = await handleSongRequest(channel, username, message, true);
-        if(!result) {
-            console.log(`${username} tried cheering for the song request, but it failed (broken link or something). You will have to add it manually`);
+    if(chatbotConfig.usage_types.includes(bitsUsageType)) {
+        let use_exact_amount = chatbotConfig.use_exact_amount_of_bits;
+        if(use_exact_amount && bits == chatbotConfig.minimum_requred_bits || !use_exact_amount && bits >= chatbotConfig.minimum_requred_bits) {
+            let username = state[displayNameTag];
+            // afaik, bit redeems include the word "bits" which can mess up the search query.
+            // we disassemble the phrase, remove anything with 'cheerX' where X is any number or digit
+            // not likely that a lot of songs contain word 'Cheer15' in their names
+            message = message.split(' ').filter(w => !(w.includes('cheer') && /\d/.test(w))).join(' '); 
+            let result = await handleSongRequest(channel, username, message, true);
+            if(!result) {
+                console.log(`${username} tried cheering for the song request, but it failed (broken link or something). You will have to add it manually`);
+            }
         }
     }
+} 
 
-
-});
+client.on('cheer', onCheer);
 
 let parseActualSongUrlFromBigMessage = (message) => {
     const regex = new RegExp(spotifyShareUrlMakerRegex);
@@ -324,7 +327,8 @@ let addValidatedSongToQueue = async (songId, channel, callerUsername, tags) => {
             return false;
         }
         if(error?.response?.status === 403) {
-            client.say(channel, `It looks like you don't have Spotify Premium. Spotify doesn't allow adding songs to the Queue without having Spotify Premium`);
+            client.say(channel, `It looks like Spotify doesn't want you to use it for some reason. Check the console for details.`);
+            console.log(`Spotify doesn't allow requesting songs because: ${error.response.data.error.message}`);
             return false;
         }
         else {
