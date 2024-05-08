@@ -43,6 +43,12 @@ cooldown_duration: 60 # How long a user has to wait in between song requests in 
 ## BLOCKED TRACKS ##
 blocked_tracks: [""]
 
+## QUEUE LENGTH ##
+use_queue_limit: FALSE # allows you to set a limit on the amount of songs that can be queued
+max_queue_length: 10 # The maximum amount of songs that can be in the queue
+queue_cooldown_check: 60 # How long between checks of the queue length, helps reduce API calls
+ignore_max_queue_length: ["streamer", "mod"] # ["streamer", "mod", "vip", "everyone"]. Remove /add one or several for different user levels. Don't forget commas between options
+
 # List of ENV variables required at the start:
 # SPOTIFY_CLIENT_ID
 # SPOTIFY_CLIENT_SECRET

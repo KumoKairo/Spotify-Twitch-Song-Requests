@@ -11,10 +11,13 @@ const open = require('open');
 const Twitch = require('./twitchcontroller');
 
 const pack = require('./package.json');
+const {channel} = require("tmi.js/lib/utils");
 
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 let voteskipTimeout;
+let queueLength = 0;
+let lastQueueLengthCheck = Date.now();
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -290,12 +293,38 @@ let printQueue = async (channel) => {
 	}
 }
 
+let fitsInQueue = async (channel, tags, rolesArray) => {
+    let differenceInMilliseconds = new Date().getTime() - lastQueueLengthCheck.getTime();
+    let differenceInSeconds = Math.floor(differenceInMilliseconds / 1000);
+    let eligible = isUserEligible(channel, tags, rolesArray);
+
+    if (eligible) {
+        return true;
+    }
+
+    if (differenceInSeconds < chatbotConfig.queue_cooldown_check) {
+        return queueLength < chatbotConfig.max_queue_length;
+    }
+
+    let spotifyHeaders = getSpotifyHeaders();
+
+    let res = await axios.get('https://api.spotify.com/v1/me/player/queue', {
+        headers: spotifyHeaders
+    });
+
+    queueLength = res.data?.queue?.length ? res.data.queue.length : 0
+    return queueLength < chatbotConfig.max_queue_length;
+}
+
+
 let handleSongRequest = async (channel, username, message, tags) => {
     let validatedSongId = await validateSongRequest(message, channel);
     if(!validatedSongId) {
         client.say(channel, chatbotConfig.song_not_found);
         return false;
-    }  else if (chatbotConfig.use_cooldown && !usersOnCooldown.has(username)) {
+    } else if ((chatbotConfig.use_queue_limit && await fitsInQueue(channel, tags, chatbotConfig.ignore_max_queue_length))
+        && chatbotConfig.use_cooldown && !usersOnCooldown.has(username)) {
+        queueLength++;
         usersOnCooldown.add(username);
         setTimeout(() => {
             usersOnCooldown.delete(username)
