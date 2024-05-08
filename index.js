@@ -11,13 +11,12 @@ const open = require('open');
 const Twitch = require('./twitchcontroller');
 
 const pack = require('./package.json');
-const {channel} = require("tmi.js/lib/utils");
 
 let spotifyRefreshToken = '';
 let spotifyAccessToken = '';
 let voteskipTimeout;
 let queueLength = 0;
-let lastQueueLengthCheck = Date.now();
+let lastQueueLengthCheck= Date.now();
 
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
@@ -315,7 +314,6 @@ let fitsInQueue = async (channel, tags, rolesArray) => {
     queueLength = res.data?.queue?.length ? res.data.queue.length : 0
     return queueLength < chatbotConfig.max_queue_length;
 }
-
 
 let handleSongRequest = async (channel, username, message, tags) => {
     let validatedSongId = await validateSongRequest(message, channel);
